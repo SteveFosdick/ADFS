@@ -64,9 +64,12 @@ ENDIF
        JSR &0406        ;; Release Tube
        LDA #&40
        TRB &CD          ;; Reset Tube being used flag
-.L8047 LDA ABSWS+&02D7  ;; Screen memory used?
+.L8047
+IF SHADOW_SCREEN
+       LDA ABSWS+&02D7  ;; Screen memory used?
        BEQ L804F        ;; Exit if screen unchanged
        STA &FE34        ;; Restore screen setting
+ENDIF
 .L804F STZ ABSWS+&02D7  ;; Clear screen flag
        RTS
 ;;
@@ -74,7 +77,9 @@ ENDIF
 ;; -----------------------
 ;; Put shadow screen memory into main memory if i/o address specifies &FFFExxxx
 ;;
-.L8053 PHY              ;; Save Y
+IF SHADOW_SCREEN
+.L8053
+       PHY              ;; Save Y
        LDY &FE34        ;; Get current Screen setting
        STY ABSWS+&02D7  ;; Save it
        INX              ;; Address=&FFxxxxxx?
@@ -89,6 +94,14 @@ ENDIF
        TSB &FE34        ;; Put shadow RAM in memory
 .L806D PLY              ;; Restore Y
        RTS
+
+       MACRO SHADOW_SELECT
+       JSR   L8053
+       ENDMACRO
+ELSE
+       MACRO SHADOW_SELECT
+       ENDMACRO
+ENDIF
 ;;
 ;;
 ;; DRIVE ACCESS ROUTINES
@@ -247,7 +260,7 @@ ENDIF
        TAX              ;; X=Addr3 - I/O or Language
        DEY
        LDA (&B0),Y      ;; Get Addr2 - Screen bank
-       JSR L8053        ;; Set I/O and Screen settings
+       SHADOW_SELECT    ;; Set I/O and Screen settings
 ;;
 ;; No hard drive present, drive 0 to 7 map onto floppies 0 to 3.
 ;; When hard drives are present, drives 4 to 7 map onto floppies 0 to 3.
@@ -1942,7 +1955,7 @@ ENDIF
        STY &B1
        LDX ABSWS+&0219  ;; Get Addr3
        LDA ABSWS+&0218  ;; Get Addr2
-       JSR L8053        ;; Check for shadow screen memory
+       SHADOW_SELECT    ;; Check for shadow screen memory
        LDA ABSWS+&0317  ;; Get current drive
        ORA ABSWS+&021B  ;; OR with drive number
        STA ABSWS+&021B  ;; Store back into control block
@@ -8065,7 +8078,7 @@ ENDIF
        BPL LB898
        LDA ABSWS+&02BA
        LDX ABSWS+&02BB
-       JSR L8053
+       SHADOW_SELECT
        LDA ABSWS+&02BA
        CMP #&FE
        BCC LB885
@@ -8249,7 +8262,7 @@ ENDIF
        BPL LBA03
        LDA ABSWS+&02BA
        LDX ABSWS+&02BB
-       JSR L8053
+       SHADOW_SELECT
        LDA ABSWS+&02BA
        CMP #&FE
        BCC LB9ED
