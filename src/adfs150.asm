@@ -45,7 +45,7 @@ ENDIF
        BIT &CD
        BPL L8039        ;; Exit with no Tube present
 .L8026 LDA (&B0),Y      ;; Copy address to &C227-2A
-       STA &C226,Y
+       STA ABSWS+&0226,Y
        DEY
        BNE L8026
        LDA #&40
@@ -64,10 +64,10 @@ ENDIF
        JSR &0406        ;; Release Tube
        LDA #&40
        TRB &CD          ;; Reset Tube being used flag
-.L8047 LDA &C2D7        ;; Screen memory used?
+.L8047 LDA ABSWS+&02D7  ;; Screen memory used?
        BEQ L804F        ;; Exit if screen unchanged
        STA &FE34        ;; Restore screen setting
-.L804F STZ &C2D7        ;; Clear screen flag
+.L804F STZ ABSWS+&02D7  ;; Clear screen flag
        RTS
 ;;
 ;; Check for screen memory
@@ -76,7 +76,7 @@ ENDIF
 ;;
 .L8053 PHY              ;; Save Y
        LDY &FE34        ;; Get current Screen setting
-       STY &C2D7        ;; Save it
+       STY ABSWS+&02D7  ;; Save it
        INX              ;; Address=&FFxxxxxx?
        BNE L806D        ;; Not I/O memory, exit
        CMP #&FE         ;; Address=&FFFExxxx?
@@ -171,7 +171,7 @@ ENDIF
 ;;
 ;; Initialise retries value
 ;; ------------------------
-.L8099 LDA &C200        ;; Get default retries
+.L8099 LDA ABSWS+&0200  ;; Get default retries
        STA &CE          ;; Set current retries
        RTS
 ;;
@@ -264,16 +264,16 @@ IF INCLUDE_FLOPPY
        PHA              ;; Save result
        LDY #&06         ;; Update ADFS error infomation
        LDA (&B0),Y      ;; Get Drive+Sector b16-b19
-       ORA &C317        ;; OR with current drive
-       STA &C2D2        ;; Store
+       ORA ABSWS+&0317  ;; OR with current drive
+       STA ABSWS+&02D2  ;; Store
        INY
        LDA (&B0),Y      ;; Get Sector b8-b15
-       STA &C2D1
+       STA ABSWS+&02D1
        INY
        LDA (&B0),Y      ;; Get Sector b0-b7
-       STA &C2D0
+       STA ABSWS+&02D0
        PLA              ;; Restore result
-       STA &C2D3        ;; Store
+       STA ABSWS+&02D3  ;; Store
 .L8110 RTS
 ENDIF
 ;;
@@ -289,7 +289,7 @@ ENDIF
 ;;
 .L8111 LDY #&06
        LDA (&B0),Y      ;; Get drive
-       ORA &C317        ;; OR with current drive
+       ORA ABSWS+&0317  ;; OR with current drive
 IF INCLUDE_FLOPPY
        BMI L80F0        ;; Jump back with 4,5,6,7 as floppies
 ENDIF
@@ -359,8 +359,8 @@ ELIF PATCH_IDE
        BVC CommandStart ;; Accessing I/O memory
        PHP
        PHX
-       LDX #&27         ;; Point to address block
-       LDY #&C2
+       LDX #<(ABSWS+&0227) ;; Point to address block
+       LDY #>(ABSWS+&0227)
        LDA #0           ;; Set Tube action
        ROL A
        EOR #1
@@ -413,11 +413,11 @@ ELIF PATCH_IDE
        LDA &FC47
        AND #&21
        BNE TransDone    ;; Error occured
-       INC &C228
+       INC ABSWS+&0228
        BNE TubeAddr     ;; Increment Tube address
-       INC &C229
+       INC ABSWS+&0229
        BNE TubeAddr
-       INC &C22A
+       INC ABSWS+&022A
 .TubeAddr
        INC &87          ;; Increment sector
        BNE TransCount
@@ -460,8 +460,8 @@ ELSE
        JSR L833E        ;; Send to SCSI data port
        INY
        LDA (&B0),Y      ;; Get Drive
-       ORA &C317        ;; OR with current drive
-       STA &C333
+       ORA ABSWS+&0317  ;; OR with current drive
+       STA ABSWS+&0333
        JMP L814C        ;; Send rest of command block
 ;;
 .L814A LDA (&B0),Y      ;; Get a command block byte
@@ -483,8 +483,8 @@ ELSE
 .L816A LDY #&00         ;; Initialise Y to 0
        BIT &CD          ;; Accessing Tube?
        BVC L817C        ;; No, jump ahead to do the transfer
-       LDX #&27
-       LDY #&C2         ;; XY=>Tube address
+       LDX #<(ABSWS+&0227)
+       LDY #>(ABSWS+&0227) ;; XY=>Tube address
        LDA #&00         ;; A=0
        PHP              ;; Save CC/CS state
        ROL A            ;; A=0/1 for Read/Write
@@ -579,13 +579,13 @@ ELSE
        INC &B3
        BRA L81E1
 ;;
-.L8200 INC &C228
+.L8200 INC ABSWS+&0228
        BNE L820D
-       INC &C229
+       INC ABSWS+&0229
        BNE L820D
-       INC &C22A
-.L820D LDX #&27
-       LDY #&C2
+       INC ABSWS+&022A
+.L820D LDX #<(ABSWS+&0227)
+       LDY #>(ABSWS+&0227)
        RTS
 ENDIF
 ;;
@@ -661,9 +661,9 @@ ELIF PATCH_IDE
        RTS
 .SetRandom
        JSR SetCylinder  ;; Set sector b16-b21
-       EOR &C201,X      ;; Merge Drive and Head
+       EOR ABSWS+&0201,X ;; Merge Drive and Head
        AND #&02
-       EOR &C201,X
+       EOR ABSWS+&0201,X
        JSR SetDrive     ;; Set device and command
        PLA
        PHP
@@ -730,7 +730,7 @@ ELSE
        TAX
        TAY
        JSR L833E        ;; Send &03 to SCSI
-       LDA &C333
+       LDA ABSWS+&0333
        AND #&E0
        JSR L833E        ;; Send drive to SCSI
 .L826F JSR L833E        ;; Send &00 to SCSI
@@ -738,15 +738,15 @@ ELSE
        BPL L826F        ;; Send 4 zeros: sends &03 dd &00 &00 &00 &00
 .L8275 JSR L8332        ;; Wait for SCSI
        LDA &FC40        ;; Get byte from SCSI
-       STA &C2D0,X      ;; Store in error block
+       STA ABSWS+&02D0,X ;; Store in error block
        DEX
        BPL L8275        ;; Loop to fetch four bytes, err, sec.hi, sec.mid, sec.lo
-       LDA &C333
+       LDA ABSWS+&0333
        AND #&E0
-       ORA &C2D2        ;; ORA drive number with current drive
-       STA &C2D2
+       ORA ABSWS+&02D2  ;; ORA drive number with current drive
+       STA ABSWS+&02D2
        JSR L8332        ;; Wait for SCSI
-       LDX &C2D3        ;; Get returned error number
+       LDX ABSWS+&02D3  ;; Get returned error number
        LDA &FC40        ;; Get a byte from SCSI
        JSR L8332        ;; Wait for SCSI
        LDY &FC40        ;; Get another byte from SCSI
@@ -762,16 +762,16 @@ ENDIF
 ;;
 ;; Do predefined SCSI operations
 ;; -----------------------------
-.L82AA LDX #&15         ;; Point to &C215
-       LDY #&C2
+.L82AA LDX #<(ABSWS+&0215) ;; Point to &C215
+       LDY #>(ABSWS+&0215)
 .L82AE JSR L80A2        ;; Do a disk operation
        BNE L82BD        ;; Jump ahead with error
        RTS              ;; Exit if OK
 ;;
 ;; Do a disk access
 ;; ----------------
-.L82B4 LDA &C22F
-       STA &C317
+.L82B4 LDA ABSWS+&022F
+       STA ABSWS+&0317
        JMP L8BE2        ;; Not Found error
 ;;
 .L82BD CMP #&25         ;; Hard drive error &25 (Bad drive)?
@@ -881,19 +881,19 @@ IF NOT(PATCH_SD)        ;; Called only from Floppy and IDE code, not SD code
        JMP L81AD
 ENDIF
 ;;
-.L834E LDX &C22F
+.L834E LDX ABSWS+&022F
        INX
        BNE L836B
-       LDX &C22E
+       LDX ABSWS+&022E
        INX
        BNE L8365
        LDY #&02
-.L835C LDA &C314,Y
-       STA &C22C,Y
+.L835C LDA ABSWS+&0314,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL L835C
-.L8365 LDA &C317
-       STA &C22F
+.L8365 LDA ABSWS+&0317
+       STA ABSWS+&022F
 .L836B JSR L89D8
        LDA #&10
        TRB &CD
@@ -929,7 +929,7 @@ ENDIF
        STA &0100,Y
        DEX
        BPL L83A4
-       LDA &C2D2
+       LDA ABSWS+&02D2
        ASL A
        ROL A
        ROL A
@@ -940,18 +940,18 @@ ENDIF
        LDA #&2F
        INY
        STA &0100,Y
-       LDA &C2D2
+       LDA ABSWS+&02D2
        AND #&1F
        LDX #&02
        BNE L83CE
-.L83CB LDA &C2D0,X
+.L83CB LDA ABSWS+&02D0,X
 .L83CE JSR L8451
        DEX
        BPL L83CB
        INY
        LDA #&00
        STA &0100,Y
-.L83DA LDA &C2D5
+.L83DA LDA ABSWS+&02D5
        BEQ L840F
        LDX #&0B
        DEY
@@ -960,23 +960,23 @@ ENDIF
        STA &0100,Y
        DEX
        BPL L83E2
-       LDA &C2D5
+       LDA ABSWS+&02D5
        JSR L846D
        PHY
        LDA #&C6
-       STA &C2D9
+       STA ABSWS+&02D9
        JSR L84C4
-       CPX &C2D5
+       CPX ABSWS+&02D5
        PHP
        LDX #&BD
        PLP
        BEQ L840B
-       CPY &C2D5
+       CPY ABSWS+&02D5
        BNE L840E
        LDX #&C0
 .L840B JSR L84D3
 .L840E PLY
-.L840F LDA &C2CE
+.L840F LDA ABSWS+&02CE
        BNE L8417
        JSR LA7D4
 .L8417 LDA #&00
@@ -1048,17 +1048,17 @@ ENDIF
 ;;
 .L849A LDX #&0C
        LDA #&FF
-.L849E STA &C22B,X
-       STA &C313,X
+.L849E STA ABSWS+&022B,X
+       STA ABSWS+&0313,X
        DEX
        BNE L849E
        JSR LA189
        JSR LA189
        LDY #&00
        TYA
-.L84B0 STA &C100,Y
-       STA &C000,Y
-       STA &C400,Y
+.L84B0 STA ABSWS+&0100,Y
+       STA ABSWS+&0000,Y
+       STA ABSWS+&0400,Y
        INY
        BNE L84B0
 .L84BC RTS
@@ -1087,14 +1087,14 @@ ENDIF
 .L84D8 EQUS &0D, "SEY"
 .L84DC EQUS &00, "Hugo"
 ;;
-.L84E1 LDA &C237
-       ORA &C238
-       ORA &C239
+.L84E1 LDA ABSWS+&0237
+       ORA ABSWS+&0238
+       ORA ABSWS+&0239
        BNE L84ED
        RTS
 ;;
 .L84ED LDX #&00
-.L84EF CPX &C1FE
+.L84EF CPX ABSWS+&01FE
        BCS L8526
        INX
        INX
@@ -1102,8 +1102,8 @@ ENDIF
        STX &B2
        LDY #&02
 .L84FB DEX
-       LDA &C000,X
-       CMP &C234,Y
+       LDA ABSWS+&0000,X
+       CMP ABSWS+&0234,Y
        BCS L8508
        LDX &B2
        BRA L84EF
@@ -1120,10 +1120,10 @@ ENDIF
        PHP
        LDY #&00
 .L8518 PLP
-       LDA &C234,Y
-       ADC &C237,Y
+       LDA ABSWS+&0234,Y
+       ADC ABSWS+&0237,Y
        PHP
-       CMP &C000,X
+       CMP ABSWS+&0000,X
        BEQ L8529
        PLP
 .L8526 JMP L85B3
@@ -1139,10 +1139,10 @@ ENDIF
        PHP
        LDY #&00
 .L8538 PLP
-       LDA &BFFD,X
-       ADC &C0FD,X
+       LDA ABSWS-3,X
+       ADC ABSWS+&00FD,X
        PHP
-       CMP &C234,Y
+       CMP ABSWS+&0234,Y
        BEQ L854A
        LDX &B2
        PLA
@@ -1158,9 +1158,9 @@ ENDIF
        CLC
        PHP
 .L8557 PLP
-       LDA &C0FD,X
-       ADC &C237,Y
-       STA &C0FD,X
+       LDA ABSWS+&00FD,X
+       ADC ABSWS+&0237,Y
+       STA ABSWS+&00FD,X
        PHP
        INX
        INY
@@ -1170,35 +1170,35 @@ ENDIF
        LDY #&02
        LDX &B2
        CLC
-.L856E LDA &C0FD,X
-       ADC &C100,X
-       STA &C0FD,X
+.L856E LDA ABSWS+&00FD,X
+       ADC ABSWS+&0100,X
+       STA ABSWS+&00FD,X
        INX
        DEY
        BPL L856E
-.L857B CPX &C1FE
+.L857B CPX ABSWS+&01FE
        BCS L858F
-       LDA &C100,X
-       STA &C0FD,X
-       LDA &C000,X
-       STA &BFFD,X
+       LDA ABSWS+&0100,X
+       STA ABSWS+&00FD,X
+       LDA ABSWS+&0000,X
+       STA ABSWS-3,X
        INX
        BNE L857B
 .L858F DEX
        DEX
        DEX
-       STX &C1FE
+       STX ABSWS+&01FE
        RTS
 ;;
 .L8596 LDY #&00
        CLC
        PHP
-.L859A LDA &C234,Y
-       STA &C000,X
+.L859A LDA ABSWS+&0234,Y
+       STA ABSWS+&0000,X
        PLP
-       LDA &C100,X
-       ADC &C237,Y
-       STA &C100,X
+       LDA ABSWS+&0100,X
+       ADC ABSWS+&0237,Y
+       STA ABSWS+&0100,X
        PHP
        INY
        INX
@@ -1213,10 +1213,10 @@ ENDIF
        PHP
        LDY #&00
 .L85BB PLP
-       LDA &BFFD,X
-       ADC &C0FD,X
+       LDA ABSWS-3,X
+       ADC ABSWS+&00FD,X
        PHP
-       CMP &C234,Y
+       CMP ABSWS+&0234,Y
        BEQ L85CB
        PLP
        BRA L85EB
@@ -1231,9 +1231,9 @@ ENDIF
        CLC
        PHP
 .L85D8 PLP
-       LDA &C0FD,X
-       ADC &C237,Y
-       STA &C0FD,X
+       LDA ABSWS+&00FD,X
+       ADC ABSWS+&0237,Y
+       STA ABSWS+&00FD,X
        PHP
        INX
        INY
@@ -1242,7 +1242,7 @@ ENDIF
        PLP
        RTS
 ;;
-.L85EB LDA &C1FE
+.L85EB LDA ABSWS+&01FE
        CMP #&F6
        BCC L85FF
        JSR L834E
@@ -1250,43 +1250,43 @@ ENDIF
        EQUS "Map full"
        EQUB &00
 ;;
-.L85FF LDX &C1FE
+.L85FF LDX ABSWS+&01FE
 .L8602 CPX &B2
        BEQ L8615
        DEX
-       LDA &C000,X
-       STA &C003,X
-       LDA &C100,X
-       STA &C103,X
+       LDA ABSWS+&0000,X
+       STA ABSWS+&0003,X
+       LDA ABSWS+&0100,X
+       STA ABSWS+&0103,X
        BRA L8602
 ;;
 .L8615 LDY #&00
-.L8617 LDA &C234,Y
-       STA &C000,X
-       LDA &C237,Y
-       STA &C100,X
+.L8617 LDA ABSWS+&0234,Y
+       STA ABSWS+&0000,X
+       LDA ABSWS+&0237,Y
+       STA ABSWS+&0100,X
        INX
        INY
        CPY #&03
        BNE L8617
-       LDA &C1FE
+       LDA ABSWS+&01FE
        ADC #&02
-       STA &C1FE
+       STA ABSWS+&01FE
 .L8631 RTS
 ;;
 .L8632 LDX #&00
-       STX &C25D
-       STX &C25E
-       STX &C25F
-.L863D CPX &C1FE
+       STX ABSWS+&025D
+       STX ABSWS+&025E
+       STX ABSWS+&025F
+.L863D CPX ABSWS+&01FE
        BEQ L8631
        LDY #&00
        CLC
        PHP
 .L8646 PLP
-       LDA &C100,X
-       ADC &C25D,Y
-       STA &C25D,Y
+       LDA ABSWS+&0100,X
+       ADC ABSWS+&025D,Y
+       STA ABSWS+&025D,Y
        PHP
        INY
        INX
@@ -1298,7 +1298,7 @@ ENDIF
 .L865B LDX #&FF
        STX &B3
        INX
-.L8660 CPX &C1FE
+.L8660 CPX ABSWS+&01FE
        BCC L86E1
        LDX &B3
        CPX #&FF
@@ -1307,8 +1307,8 @@ ENDIF
        LDY #&00
        LDX #&02
        SEC
-.L8673 LDA &C25D,Y
-       SBC &C23D,Y
+.L8673 LDA ABSWS+&025D,Y
+       SBC ABSWS+&023D,Y
        INY
        DEX
        BPL L8673
@@ -1325,8 +1325,8 @@ ENDIF
 ;;
 .L86A5 LDY #&02
 .L86A7 DEX
-       LDA &C000,X
-       STA &C23A,Y
+       LDA ABSWS+&0000,X
+       STA ABSWS+&023A,Y
        DEY
        BPL L86A7
        INY
@@ -1334,9 +1334,9 @@ ENDIF
        CLC
        PHP
 .L86B6 PLP
-       LDA &BFFD,X
-       ADC &C23D,Y
-       STA &BFFD,X
+       LDA ABSWS-3,X
+       ADC ABSWS+&023D,Y
+       STA ABSWS-3,X
        PHP
        INX
        INY
@@ -1348,9 +1348,9 @@ ENDIF
        SEC
        PHP
 .L86CE PLP
-       LDA &C0FD,X
-       SBC &C23D,Y
-       STA &C0FD,X
+       LDA ABSWS+&00FD,X
+       SBC ABSWS+&023D,Y
+       STA ABSWS+&00FD,X
        PHP
        INX
        INY
@@ -1365,8 +1365,8 @@ ENDIF
        INX
        STX &B2
 .L86E8 DEX
-       LDA &C100,X
-       CMP &C23D,Y
+       LDA ABSWS+&0100,X
+       CMP ABSWS+&023D,Y
        BCC L872C
        BNE L8723
        DEY
@@ -1374,22 +1374,22 @@ ENDIF
        LDX &B2
        LDY #&02
 .L86FA DEX
-       LDA &C000,X
-       STA &C23A,Y
+       LDA ABSWS+&0000,X
+       STA ABSWS+&023A,Y
        DEY
        BPL L86FA
        LDX &B2
-.L8706 CPX &C1FE
+.L8706 CPX ABSWS+&01FE
        BCS L871A
-       LDA &C000,X
-       STA &BFFD,X
-       LDA &C100,X
-       STA &C0FD,X
+       LDA ABSWS+&0000,X
+       STA ABSWS-3,X
+       LDA ABSWS+&0100,X
+       STA ABSWS+&00FD,X
        INX
        BNE L8706
-.L871A LDA &C1FE
+.L871A LDA ABSWS+&01FE
        SBC #&03
-       STA &C1FE
+       STA ABSWS+&01FE
        RTS
 ;;
 .L8723 LDX &B3
@@ -1408,7 +1408,7 @@ ENDIF
 .L8738 JSR LA50D
        JSR L8D79
        LDY #&00
-       STY &C2C0
+       STY ABSWS+&02C0
 .L8743 LDA (&B4),Y
        AND #&7F
        CMP #&2E
@@ -1434,18 +1434,18 @@ ENDIF
 .L876D LDY #&09
 .L876F LDA (&B6),Y
        AND #&7F
-       STA &C262,Y
+       STA ABSWS+&0262,Y
        DEY
        BPL L876F
        INY
        LDX #&00
 .L877C CPX #&0A
        BCS L87C1
-       LDA &C262,X
+       LDA ABSWS+&0262,X
        CMP #&21
        BCC L87C1
        ORA #&20
-       STA &C22B
+       STA ABSWS+&022B
        CPY #&0A
        BCS L87AB
        JSR L8743
@@ -1455,7 +1455,7 @@ ENDIF
        CMP #&23
        BEQ L87A6
        ORA #&20
-       CMP &C22B
+       CMP ABSWS+&022B
        BCC L87B0
        BNE L87AA
 .L87A6 INX
@@ -1485,7 +1485,7 @@ ENDIF
        RTS
 ;;
 .L87D1 INY
-.L87D2 LDA &C262,X
+.L87D2 LDA ABSWS+&0262,X
        AND #&7F
        CMP #&21
        BCC L87F4
@@ -1540,8 +1540,8 @@ ENDIF
 ;;
 ;; Control block to load FSM
 .L8831 EQUB &01
-       EQUB &00
-       EQUB &C0
+       EQUB <ABSWS
+       EQUB >ABSWS
        EQUB &FF
        EQUB &FF
        EQUB &08
@@ -1553,8 +1553,8 @@ ENDIF
 ;;
 ;; Control block to load '$'
 .L883C EQUB &01
-       EQUB &00
-       EQUB &C4
+       EQUB <(ABSWS+&0400)
+       EQUB >(ABSWS+&0400)
        EQUB &FF
        EQUB &FF
        EQUB &08
@@ -1601,16 +1601,16 @@ ENDIF
        CMP #&3A
        BNE L88EF
        JSR L8731
-       LDX &C22F
+       LDX ABSWS+&022F
        INX
        BNE L888D
-       LDA &C317
-       STA &C22F
+       LDA ABSWS+&0317
+       STA ABSWS+&022F
 .L888D JSR L8743
        JSR L8847
-       STA &C317
+       STA ABSWS+&0317
 .L8896 JSR L8731
-.L8899 LDX &C317
+.L8899 LDX ABSWS+&0317
        INX
        BNE L88AD
 IF INCLUDE_FLOPPY
@@ -1618,9 +1618,9 @@ IF INCLUDE_FLOPPY
        AND #&20         ;; Hard drive present?
        BEQ L88AA        ;; Jump if no hard drive
 ENDIF
-       LDA &C2D8        ;; Get CMOS byte RAM copy
+       LDA ABSWS+&02D8        ;; Get CMOS byte RAM copy
        AND #&80         ;; Get hard drive flag
-.L88AA STA &C317        ;; Store in current drive
+.L88AA STA ABSWS+&0317        ;; Store in current drive
 .L88AD LDA #&10
        TSB &CD          ;; Flag FSM inconsistant
        LDX #<L8831
@@ -1628,21 +1628,21 @@ ENDIF
        JSR L82AE        ;; Load FSM
        LDA #&10
        TRB &CD          ;; Flag FSM loaded
-       LDA &C22E
+       LDA ABSWS+&022E
        BPL L88CC
        LDY #&02
-.L88C3 LDA &C314,Y
-       STA &C22C,Y
+.L88C3 LDA ABSWS+&0314,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL L88C3
 .L88CC LDY #>L883C
        LDX #<L883C
        JSR L82AE        ;; Load '$'
        LDA #&02
-       STA &C314        ;; Set CURR to &000002 - '$'
+       STA ABSWS+&0314        ;; Set CURR to &000002 - '$'
        LDA #&00
-       STA &C315
-       STA &C316
+       STA ABSWS+&0315
+       STA ABSWS+&0316
        JSR LB4B9
        LDY #&00
        JSR L8743
@@ -1658,22 +1658,22 @@ ENDIF
 .L88FD JSR L9456
        BNE L892A
        INY
-       STY &C2A2
+       STY ABSWS+&02A2
        JSR L8743
        CMP #&2E
        BNE L892F
        JMP L8997
 ;;
 .L8910 LDA #&24
-       STA &C262
+       STA ABSWS+&0262
        LDA #&0D
-       STA &C263
+       STA ABSWS+&0263
        LDA #<L94D3
        STA &B6
        LDA #>L94D3
        STA &B7
        LDA #&02
-       STA &C2C0
+       STA ABSWS+&02C0
        LDA #&00
        RTS
 ;;
@@ -1686,7 +1686,7 @@ ENDIF
        LDA (&B6),Y
        BPL L8939
        INX
-.L8939 STX &C2C0
+.L8939 STX ABSWS+&02C0
        LDA #&00
        RTS
 ;;
@@ -1700,7 +1700,7 @@ ENDIF
        BEQ L8953
        INY
        BNE L8941
-.L8953 STY &C2A2
+.L8953 STY ABSWS+&02A2
 .L8956 LDY #&03
        LDA (&B6),Y
        BMI L897B
@@ -1733,77 +1733,77 @@ ENDIF
        EQUS "Bad rename"
        EQUB &00
 ;;
-.L8997 LDA &C2A2
+.L8997 LDA ABSWS+&02A2
        SEC
        ADC &B4
        STA &B4
        BCC L89A3
        INC &B5
-.L89A3 LDA &C22E
+.L89A3 LDA ABSWS+&022E
        INC A
        BNE L89B4
        LDY #&02
-.L89AB LDA &C314,Y
-       STA &C22C,Y
+.L89AB LDA ABSWS+&0314,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL L89AB
 .L89B4 LDX #&0A
 .L89B6 LDA L883C,X
-       STA &C215,X
+       STA ABSWS+&0215,X
        DEX
        BPL L89B6
        LDX #&02
        LDY #&16
 .L89C3 LDA (&B6),Y
-       STA &C21B,X
-       STA &C2FE,Y
+       STA ABSWS+&021B,X
+       STA ABSWS+&02FE,Y
        INY
        DEX
        BPL L89C3
        JSR L82AA
        JMP L88FD
 ;;
-.L89D5 LDA &C2C0
+.L89D5 LDA ABSWS+&02C0
 ;;
 .L89D8 PHA
-       LDA &C22F
+       LDA ABSWS+&022F
        CMP #&FF
        BEQ L89EF
-       STA &C317
+       STA ABSWS+&0317
        LDA #&FF
-       STA &C22F
+       STA ABSWS+&022F
        LDX #<L8831
        LDY #>L8831
        JSR L82AE        ;; Load FSM
-.L89EF LDA &C22E
+.L89EF LDA ABSWS+&022E
        CMP #&FF
        BEQ L8A22
        TAX
        LDY #&0A
 .L89F9 LDA L883C,Y      ;; Copy parameter block to
-       STA &C215,Y      ;; load '$'
+       STA ABSWS+&0215,Y      ;; load '$'
        DEY
        BPL L89F9
-       STX &C316        ;; Copy parameters to &C215
-       STX &C21B
-       LDA &C22D
-       STA &C315
-       STA &C21C
-       LDA &C22C
-       STA &C314
-       STA &C21D
+       STX ABSWS+&0316        ;; Copy parameters to &C215
+       STX ABSWS+&021B
+       LDA ABSWS+&022D
+       STA ABSWS+&0315
+       STA ABSWS+&021C
+       LDA ABSWS+&022C
+       STA ABSWS+&0314
+       STA ABSWS+&021D
        LDA #&FF
-       STA &C22E
+       STA ABSWS+&022E
        JSR L82AA        ;; Do disk op from &C215
 .L8A22 LDA &CD
-       STA &C320
+       STA ABSWS+&0320
        JSR LA744        ;; Get WS address in &BA
        LDY #&FB
-.L8A2C LDA &C300,Y      ;; Copy workspace to private
+.L8A2C LDA ABSWS+&0300,Y      ;; Copy workspace to private
        STA (&BA),Y
        DEY
        BNE L8A2C
-       LDA &C300
+       LDA ABSWS+&0300
        STA (&BA),Y
        JSR LA761        ;; Reset workspace checksum
        LDX &B8
@@ -1838,97 +1838,97 @@ ENDIF
 ;;   &C223  Length3
 ;;   &C224
 ;;
-.L8A4A LDA &C21A        ;; Get command
+.L8A4A LDA ABSWS+&021A  ;; Get command
        CMP #&08         ;; Read?
        BEQ L8A68        ;; Jump forward with Read
-       LDA &C220        ;; If Length0=0?
+       LDA ABSWS+&0220  ;; If Length0=0?
        BEQ L8A68        ;; Whole number of sectors
 ;;
 ;; Adjust the Length to be a whole number of sectors for writing
 ;;
        LDA #&0
-       STA &C220
-       INC &C221
+       STA ABSWS+&0220
+       INC ABSWS+&0221
        BNE L8A68
-       INC &C222
+       INC ABSWS+&0222
        BNE L8A68
-       INC &C223
+       INC ABSWS+&0223
 ;;
 ;; Length is now a whole number of sectors, a whole multiple of 256 bytes
 ;;
-.L8A68 LDX #&15
-       LDY #&C2         ;; XY=>control block
+.L8A68 LDX #<(ABSWS+&0215)
+       LDY #>(ABSWS+&0215) ;; XY=>control block
        LDA #&FF
-       STA &C21E        ;; Set initial sector count to &FF
+       STA ABSWS+&021E     ;; Set initial sector count to &FF
 ;;
 ;; Transfer batches of &FF00 bytes until less than 64k left
 ;; --------------------------------------------------------
-.L8A71 LDA &C223
-       ORA &C222        ;; Get Length2+Length3
+.L8A71 LDA ABSWS+&0223
+       ORA ABSWS+&0222  ;; Get Length2+Length3
        BEQ L8ABC        ;; Jump if remaining length<64k
 ;;
        JSR L80A2        ;; Do a transfer
        BNE L8ACE        ;; Exit with any error
        LDA #&FF         ;; Update address
        CLC              ;; Addr=Addr+&0000FF00
-       ADC &C217        ;; Addr1=Addr1+&FF
-       STA &C217
+       ADC ABSWS+&0217  ;; Addr1=Addr1+&FF
+       STA ABSWS+&0217
        BCC L8A91        ;; No overflow
-       INC &C218        ;; Addr2=Addr2+1
+       INC ABSWS+&0218  ;; Addr2=Addr2+1
        BNE L8A91        ;; No overflow
-       INC &C219        ;; Addr3=Addr3+1
+       INC ABSWS+&0219  ;; Addr3=Addr3+1
 ;;
 .L8A91 LDA #&FF         ;; Update sector
        CLC
-       ADC &C21D        ;; Sector=Sector+&FF
-       STA &C21D        ;; Sector0=Sector0+&FF
+       ADC ABSWS+&021D  ;; Sector=Sector+&FF
+       STA ABSWS+&021D  ;; Sector0=Sector0+&FF
        BCC L8AA4        ;; No overflow
-       INC &C21C        ;; Sector1=Sector1+1
+       INC ABSWS+&021C  ;; Sector1=Sector1+1
        BNE L8AA4        ;; No overflow
-       INC &C21B        ;; Sector2=Sector2+1
+       INC ABSWS+&021B  ;; Sector2=Sector2+1
 ;;
-.L8AA4 LDA &C221        ;; Update length
+.L8AA4 LDA ABSWS+&0221  ;; Update length
        SEC
        SBC #&FF         ;; Length=Length-&0000FF00
-       STA &C221        ;; Length1=Length1-&FF
+       STA ABSWS+&0221  ;; Length1=Length1-&FF
        BCS L8A71        ;; No overflow
-       LDA &C222        ;; Get Length2
+       LDA ABSWS+&0222  ;; Get Length2
        BNE L8AB7        ;; No need to decrement
-       DEC &C223        ;; Length3=Length3-1
-.L8AB7 DEC &C222        ;; Length2=Length2-1
+       DEC ABSWS+&0223  ;; Length3=Length3-1
+.L8AB7 DEC ABSWS+&0222  ;; Length2=Length2-1
        BRA L8A71        ;; Loop back for another &FF00 bytes
 ;;
 ;; There is now less than 64k to transfer
 ;; --------------------------------------
-.L8ABC LDA &C221        ;; Get Length1
+.L8ABC LDA ABSWS+&0221  ;; Get Length1
        BEQ L8AC9        ;; Now less than 256 bytes to go
-       STA &C21E        ;; Set Sector Count
+       STA ABSWS+&021E  ;; Set Sector Count
        JSR L80A2        ;; Do this transfer
        BNE L8ACE        ;; Exit with any error
 ;;
-.L8AC9 LDA &C220        ;; Get Length0
+.L8AC9 LDA ABSWS+&0220  ;; Get Length0
        BNE L8ACF        ;; Jump to deal with any leftover bytes
 .L8ACE RTS
 ;;
 ;; There are now less than 256 bytes left, must be reading
 ;; -------------------------------------------------------
-.L8ACF STA &C21E        ;; Store Length0 in Sector Count
-       LDA &C221        ;; Get last length transfered
+.L8ACF STA ABSWS+&021E  ;; Store Length0 in Sector Count
+       LDA ABSWS+&0221  ;; Get last length transfered
        CLC
-       ADC &C21D        ;; Add to Sector0
-       STA &C21D        ;; Store in Sector0
+       ADC ABSWS+&021D  ;; Add to Sector0
+       STA ABSWS+&021D  ;; Store in Sector0
        BCC L8AE6
-       INC &C21C        ;; Increment Sector1
+       INC ABSWS+&021C  ;; Increment Sector1
        BNE L8AE6
-       INC &C21B        ;; Increment Sector2
-.L8AE6 LDA &C221        ;; Get Length1
+       INC ABSWS+&021B  ;; Increment Sector2
+.L8AE6 LDA ABSWS+&0221  ;; Get Length1
        CLC
-       ADC &C217        ;; Add to Addr1
-       STA &C217        ;; Store Addr1
+       ADC ABSWS+&0217  ;; Add to Addr1
+       STA ABSWS+&0217  ;; Store Addr1
        BCC L8AFA
-       INC &C218        ;; Increment Addr2
+       INC ABSWS+&0218  ;; Increment Addr2
        BNE L8AFA
-       INC &C219        ;; Increment Addr3
+       INC ABSWS+&0219  ;; Increment Addr3
 .L8AFA JSR L8328        ;; Wait for ensuring to finish
        JSR L8099        ;; Initialise retries
 .L8B00 JSR L8B09        ;; Call to load data
@@ -1936,30 +1936,30 @@ ENDIF
        DEC &CE          ;; Decrement retries
        BPL L8B00        ;; Loop to try again
 ;;                                         Fall through to try once more
-.L8B09 LDX #&15         ;; Point to control block
-       LDY #&C2
+.L8B09 LDX #<(ABSWS+&0215) ;; Point to control block
+       LDY #>(ABSWS+&0215)
        STX &B0
        STY &B1
-       LDX &C219        ;; Get Addr3
-       LDA &C218        ;; Get Addr2
+       LDX ABSWS+&0219  ;; Get Addr3
+       LDA ABSWS+&0218  ;; Get Addr2
        JSR L8053        ;; Check for shadow screen memory
-       LDA &C317        ;; Get current drive
-       ORA &C21B        ;; OR with drive number
-       STA &C21B        ;; Store back into control block
-       STA &C333
+       LDA ABSWS+&0317  ;; Get current drive
+       ORA ABSWS+&021B  ;; OR with drive number
+       STA ABSWS+&021B  ;; Store back into control block
+       STA ABSWS+&0333
 IF INCLUDE_FLOPPY
        LDA &CD          ;; Get options
        AND #&20         ;; Hard drive present?
        BNE L8B4F        ;; Jump ahead if so
-.L8B2C LDA &C21B
-       ORA &C317
-       STA &C2D2
-       LDA &C21C
-       STA &C2D1
-       LDA &C21D
-       STA &C2D0
+.L8B2C LDA ABSWS+&021B
+       ORA ABSWS+&0317
+       STA ABSWS+&02D2
+       LDA ABSWS+&021C
+       STA ABSWS+&02D1
+       LDA ABSWS+&021D
+       STA ABSWS+&02D0
        JSR LACE6
-       STA &C204,X
+       STA ABSWS+&0204,X
        TXA
        LSR A
        LSR A
@@ -1969,28 +1969,28 @@ ENDIF
 ;;
 ;; Get bytes from a partial sector from a hard drive
 ;; -------------------------------------------------
-.L8B4F LDA &C333        ;; Get drive number
+.L8B4F LDA ABSWS+&0333  ;; Get drive number
 IF INCLUDE_FLOPPY
        BMI L8B2C        ;; Jump back with floppies
 ENDIF
        JSR L807E        ;; Set SCSI to command mode
-       LDA &C216
+       LDA ABSWS+&0216
        STA &B2
-       LDA &C217
+       LDA ABSWS+&0217
        STA &B3          ;; &B2/3=address b0-b15
-       LDA &C218        ;; Get Addr2
+       LDA ABSWS+&0218  ;; Get Addr2
        CMP #&FE
        BCC L8B6E        ;; Addr<&FFFE0000, language space
-       LDA &C219        ;; Get Addr3
+       LDA ABSWS+&0219  ;; Get Addr3
        INC A
        BEQ L8B71        ;; Address &FFxxxxxx, use I/O memory
 .L8B6E JSR L8020        ;; Claim Tube
-.L8B71 LDA &C21E        ;; Get byte count (in Sector Count)
+.L8B71 LDA ABSWS+&021E  ;; Get byte count (in Sector Count)
        TAX              ;; Pass to X
        LDA #&01
-       STA &C21E        ;; Set Sector Count to 1
+       STA ABSWS+&021E  ;; Set Sector Count to 1
        LDA #&08
-       STA &C21A        ;; Command &08 - Read
+       STA ABSWS+&021A  ;; Command &08 - Read
 IF PATCH_SD
        JSR MMC_BEGIN    ;; Initialize the card, if not already initialized
        CLC              ;; C=0 for reads
@@ -2008,7 +2008,7 @@ ELIF PATCH_IDE
        NOP
 ELSE
        LDY #&00
-.L8B81 LDA &C21A,Y
+.L8B81 LDA ABSWS+&021A,Y
        JSR L833E        ;; Send control block to SCSI
        INY
        CPY #&06
@@ -2017,8 +2017,8 @@ ENDIF
        BIT &CD          ;; Check Tube flags
        BVC L8B9B        ;; Tube not being used, jump ahead
        PHX              ;; Save byte count in X
-       LDX #&27
-       LDY #&C2
+       LDX #<(ABSWS+&0227)
+       LDY #>(ABSWS+&0227)
        LDA #&01
        JSR &0406        ;; Set Tube transfer address
        PLX              ;; Get byte count back
@@ -2103,7 +2103,7 @@ ENDIF
        BNE L8C2E
        DEY
 .L8C22 LDA (&B8),Y
-       STA &C214,Y
+       STA ABSWS+&0214,Y
        DEY
        CPY #&01
        BNE L8C22
@@ -2111,27 +2111,27 @@ ENDIF
 .L8C2E LDX #&04
        LDY #&0D
 .L8C32 LDA (&B6),Y
-       STA &C215,X
+       STA ABSWS+&0215,X
        DEY
        DEX
        BNE L8C32
 .L8C3B LDA #&01
-       STA &C215        ;; Set flag byte to 1
+       STA ABSWS+&0215  ;; Set flag byte to 1
        LDA #&08
-       STA &C21A        ;; Command 'read'
+       STA ABSWS+&021A  ;; Command 'read'
        LDA #&00
-       STA &C21F
+       STA ABSWS+&021F
        LDY #&16
        LDX #&03
 .L8C4E LDA (&B6),Y
-       STA &C21A,X      ;; Copy sector start
+       STA ABSWS+&021A,X ;; Copy sector start
        INY
        DEX
        BNE L8C4E
        LDY #&15
        LDX #&04
 .L8C5B LDA (&B6),Y
-       STA &C21F,X      ;; Copy length
+       STA ABSWS+&021F,X ;; Copy length
        DEY
        DEX
        BNE L8C5B
@@ -2146,13 +2146,13 @@ ENDIF
 .L8C70 LDY #&15         ;; Top byte of length
        LDX #&0B         ;; 11+1 bytes to copy
 .L8C74 LDA (&B6),Y      ;; Copy length/exec/load
-       STA &C215,X      ;;  to workspace
+       STA ABSWS+&0215,X ;;  to workspace
        DEY
        DEX
        BPL L8C74        ;; Loop for 12 bytes
        LDY #&0D
        LDX #&0B
-.L8C81 LDA &C215,X      ;; Copy from workspace
+.L8C81 LDA ABSWS+&0215,X ;; Copy from workspace
        STA (&B8),Y      ;;  to control block
        DEY
        DEX
@@ -2167,7 +2167,7 @@ IF PATCH_FULL_ACCESS
 .RdNotE
        LDA (&B6),Y
        ASL A
-       ROL &C22B
+       ROL ABSWS+&022B
        CPY #4
        BEQ RdIsE
        CPY #2
@@ -2181,7 +2181,7 @@ IF PATCH_FULL_ACCESS
 .RdNext
        DEY
        BPL RdLp
-       LDA &C22B
+       LDA ABSWS+&022B
        LDY #&0E
        STA (&B8),Y
        RTS
@@ -2189,14 +2189,14 @@ IF PATCH_FULL_ACCESS
        NOP
 ELSE
        LDA #&00
-       STA &C22B        ;; Clear byte for access
+       STA ABSWS+&022B  ;; Clear byte for access
        LDY #&02         ;; Point to 'L' bit
 .L8C91 LDA (&B6),Y
        ASL A
-       ROL &C22B        ;; Copy LWR into &C22B
+       ROL ABSWS+&022B  ;; Copy LWR into &C22B
        DEY
        BPL L8C91
-       LDA &C22B        ;; A=00000LWR
+       LDA ABSWS+&022B  ;; A=00000LWR
        ROR A            ;; A=000000LW Cy=R
        ROR A            ;; A=R000000L Cy=W
        ROR A            ;; A=WR000000 Cy=L
@@ -2204,12 +2204,12 @@ ELSE
        LSR A            ;; A=0WR00000
        PLP              ;; Get 'L'
        ROR A            ;; A=L0WR0000
-       STA &C22B        ;; Store back in workspace
+       STA ABSWS+&022B  ;; Store back in workspace
        LSR A
        LSR A
        LSR A
        LSR A            ;; A=0000L0WR
-       ORA &C22B        ;; A=L0WRL0WR
+       ORA ABSWS+&022B  ;; A=L0WRL0WR
        LDY #&0E
        STA (&B8),Y      ;; Store access byte in control block
        RTS
@@ -2232,7 +2232,7 @@ ENDIF
        BPL L8CCE        ;; 'E' not set, jump
        LDA #&FF         ;; 'E' set, filetype &FF
 IF PATCH_FULL_ACCESS
-       STA &C2C0
+       STA ABSWS+&02C0
 ELSE
        JMP L89D8        ;;                         STA &C2C0
 ENDIF
@@ -2287,24 +2287,24 @@ ENDIF
        EQUB &00
 ;;
 .L8D2C LDX #&09
-.L8D2E LDA &C3AC,X
+.L8D2E LDA ABSWS+&03AC,X
        BEQ L8D74
-       LDA &C3B6,X
+       LDA ABSWS+&03B6,X
        AND #&E0
-       CMP &C317
+       CMP ABSWS+&0317
        BNE L8D74
-       LDA &C3E8,X
-       CMP &C314
+       LDA ABSWS+&03E8,X
+       CMP ABSWS+&0314
        BNE L8D74
-       LDA &C3DE,X
-       CMP &C315
+       LDA ABSWS+&03DE,X
+       CMP ABSWS+&0315
        BNE L8D74
-       LDA &C3D4,X
-       CMP &C316
+       LDA ABSWS+&03D4,X
+       CMP ABSWS+&0316
        BNE L8D74
        LDY #&19
        LDA (&B6),Y
-       CMP &C3F2,X
+       CMP ABSWS+&03F2,X
        BNE L8D74
 .L8D5E JSR L836B
        EQUB &C2         ;; ERR=194
@@ -2392,19 +2392,19 @@ ENDIF
 .L8E0B INY
        LDA #&00
        ADC (&B6),Y
-       STA &C224,Y
+       STA ABSWS+&0224,Y
        DEX
        BPL L8E0B
        LDY #&18
        LDX #&02
 .L8E1A LDA (&B6),Y
-       STA &C234,X
+       STA ABSWS+&0234,X
        DEY
        DEX
        BPL L8E1A
        RTS
 ;;
-.L8E24 LDA &C8B1
+.L8E24 LDA ABSWS+&08B1
        BEQ L8E36
        JSR L836B
        EQUB &B3         ;; ERR=179
@@ -2412,9 +2412,9 @@ ENDIF
        EQUB &00
 ;;
 .L8E36 LDA &B4
-       STA &C227
+       STA ABSWS+&0227
        LDA &B5
-       STA &C228
+       STA ABSWS+&0228
        LDA #&B1
        STA &B4
        LDA #&C8
@@ -2422,7 +2422,7 @@ ENDIF
        LDY #&1A
        LDX #&06
        LDA #&00
-.L8E4E STA &C233,X
+.L8E4E STA ABSWS+&0233,X
        DEX
        BNE L8E4E
 .L8E54 LDA (&B4,X)
@@ -2439,9 +2439,9 @@ ENDIF
 .L8E6A DEC &B4
        JMP L8E54
 ;;
-.L8E6F LDA &C227
+.L8E6F LDA ABSWS+&0227
        STA &B4
-       LDA &C228
+       LDA ABSWS+&0228
        STA &B5
        RTS
 ;;
@@ -2463,20 +2463,20 @@ ENDIF
 ;;
 .L8E96 LDY #&11
 .L8E98 LDA (&B8),Y
-       STA &C215,Y
+       STA ABSWS+&0215,Y
        DEY
        BPL L8E98
        LDY #&12
        SEC
        LDX #&03
-.L8EA5 LDA &C211,Y
-       SBC &C20D,Y
+.L8EA5 LDA ABSWS+&0211,Y
+       SBC ABSWS+&020D,Y
        STA (&B6),Y
        INY
        DEX
        BPL L8EA5
        LDY #&0A
-.L8EB3 LDA &C20D,Y
+.L8EB3 LDA ABSWS+&020D,Y
        STA (&B6),Y
        INY
        CPY #&12
@@ -2494,7 +2494,7 @@ ENDIF
        BEQ L8EF8
        LDY #&19
        LDA (&B6),Y
-       CMP &C8FA
+       CMP ABSWS+&08FA
        BEQ L8EE7
        CLC
        LDA &B6
@@ -2503,13 +2503,13 @@ ENDIF
        BCC L8ECB
        INC &B7
        BCS L8ECB
-.L8EE7 LDA &C8FA
+.L8EE7 LDA ABSWS+&08FA
        CLC
        SED
        ADC #&01
        CLD
-       STA &C8FA
-       STA &C400
+       STA ABSWS+&08FA
+       STA ABSWS+&0400
        JMP L8EC3
 ;;
 .L8EF8 PLA
@@ -2517,24 +2517,24 @@ ENDIF
        PLA
        STA &B6
        LDY #&19
-       LDA &C8FA
+       LDA ABSWS+&08FA
        STA (&B6),Y
        LDA #&01
-       STA &C215
+       STA ABSWS+&0215
        LDX #&04
-.L8F0C LDA &C21E,X
-       STA &C215,X
+.L8F0C LDA ABSWS+&021E,X
+       STA ABSWS+&0215,X
        DEX
        BNE L8F0C
        LDA #&0A
-       STA &C21A
+       STA ABSWS+&021A
        LDA #&00
-       STA &C21E
+       STA ABSWS+&021E
        LDA #&00
-       STA &C21F
+       STA ABSWS+&021F
        LDY #&12
 .L8F26 LDA (&B6),Y
-       STA &C20E,Y
+       STA ABSWS+&020E,Y
        INY
        CPY #&16
        BNE L8F26
@@ -2545,7 +2545,7 @@ ENDIF
 .L8F38 LDA #&00
        INY
        ADC (&B6),Y
-       STA &C22A,Y
+       STA ABSWS+&022A,Y
        DEX
        BPL L8F38
        BCC L8F48
@@ -2566,15 +2566,15 @@ ENDIF
        JSR L865B
 .L8F63 LDY #&18
        LDX #&02
-.L8F67 LDA &C23A,X
+.L8F67 LDA ABSWS+&023A,X
        STA (&B6),Y
        DEY
        DEX
        BPL L8F67
        LDX #&02
        LDY #&06
-.L8F74 LDA &C23A,X
-       STA &C215,Y
+.L8F74 LDA ABSWS+&023A,X
+       STA ABSWS+&0215,Y
        INY
        DEX
        BPL L8F74
@@ -2592,29 +2592,29 @@ ENDIF
        JSR L9012
        LDX #&0A
 .L8F99 LDA L883C,X
-       STA &C215,X
+       STA ABSWS+&0215,X
        DEX
        BPL L8F99
        LDA #&0A
-       STA &C21A
-       LDA &C314
-       STA &C21D
-       LDA &C315
-       STA &C21C
-       LDA &C316
-       STA &C21B
+       STA ABSWS+&021A
+       LDA ABSWS+&0314
+       STA ABSWS+&021D
+       LDA ABSWS+&0315
+       STA ABSWS+&021C
+       LDA ABSWS+&0316
+       STA ABSWS+&021B
        JSR L82AA
-       LDA &C317
+       LDA ABSWS+&0317
        JSR LB5C5        ;; X=(A DIV 16)
-       LDA &C1FC
-       STA &C322,X
+       LDA ABSWS+&01FC
+       STA ABSWS+&0322,X
        LDA &FE44        ;; System VIA Latch Lo
-       STA &C321,X
-       STA &C1FB
+       STA ABSWS+&0321,X
+       STA ABSWS+&01FB
        JSR L9065        ;; Calculate FSM checksums
-       STX &C0FF        ;; Store sector 0 checksum
-       STA &C1FF        ;; Store sector 1 checksum
-       LDX #<L907A     ;; Point to control block
+       STX ABSWS+&00FF  ;; Store sector 0 checksum
+       STA ABSWS+&01FF  ; Store sector 1 checksum
+       LDX #<L907A      ;; Point to control block
        LDY #>L907A
        JSR L82AE        ;; Save FSM
        LDA #&10
@@ -2640,9 +2640,9 @@ ELSE
 .L8FF3 JSR L9012        ;; Check for overlapping FSM entries
 ENDIF
        JSR L9065        ;; Add up
-       CMP &C1FF        ;; Does sector 1 sum match?
+       CMP ABSWS+&01FF  ;; Does sector 1 sum match?
        BNE L9003        ;; No, jump to give error
-       CPX &C0FF        ;; Does sector 0 sum match?
+       CPX ABSWS+&00FF  ;; Does sector 0 sum match?
        BEQ L8FF2        ;; Yes, exit
 .L9003 JSR L834E        ;; Generate error
        EQUB &A9         ;; ERR=169
@@ -2651,11 +2651,11 @@ ENDIF
 ;;
 ;; Check Free Space Map doesn't have overlapping entries
 ;; -----------------------------------------------------
-.L9012 LDX &C1FE        ;; Get pointer to end of FSM
+.L9012 LDX ABSWS+&01FE  ;; Get pointer to end of FSM
        BEQ L8FF2        ;; Pointer=0, disk completely full, exit
        LDA #&00         ;; Seed the sum with zero
-.L9019 ORA &BFFF,X      ;; Merge with high byte of final free space
-       ORA &C0FF,X      ;; Merge with high byte of final length
+.L9019 ORA ABSWS-1,X    ;; Merge with high byte of final free space
+       ORA ABSWS+&00FF,X ;; Merge with high byte of final length
        DEX
        BEQ L9003        ;; Give error if end pointer not *3
        DEX
@@ -2664,14 +2664,14 @@ ENDIF
        BNE L9019        ;; Multiple of three, check net entry
        AND #&E0         ;; Get "drive" bits
        BNE L9003        ;; If any set, map entry too big
-       LDX &C1FE        ;; Get pointer to end of FSM
+       LDX ABSWS+&01FE  ;; Get pointer to end of FSM
        CPX #&06         ;; Are there two or more entries?
        BCC L8FF2        ;; Exit if only one FSM entry
        LDX #&03         ;; Point to first entry minus 3
 .L9035 LDY #&02         ;; Three bytes per entry
        CLC              ;; Clear carry
-.L9038 LDA &BFFD,X      ;; Get FSM entry start sector
-       ADC &C0FD,X      ;; Add FSM entry length
+.L9038 LDA ABSWS-3,X    ;; Get FSM entry start sector
+       ADC ABSWS+&00FD,X ;; Add FSM entry length
        PHA              ;; Save byte
        INX              ;; Point to next byte
        DEY
@@ -2680,7 +2680,7 @@ ENDIF
        LDY #&02         ;; Three bytes per entry
 .L9047 PLA              ;; Get start+length byte
        DEX
-       CMP &C000,X      ;; Check against next entry start
+       CMP ABSWS+&0000,X ;; Check against next entry start
        BCC L9055        ;; Hole in FSM, check next byte
        BNE L9003        ;; Entry overlaps, give error
        DEY
@@ -2695,7 +2695,7 @@ ENDIF
        INX
        INX
        INX              ;; Point to next entry
-       CPX &C1FE        ;; Check against end of FSM
+       CPX ABSWS+&01FE  ;; Check against end of FSM
        BCC L9035        ;; Loop for all entries
        RTS
 ;;
@@ -2704,22 +2704,22 @@ ENDIF
 .L9065 CLC              ;; Clear carry
        LDY #&FF         ;; Point to &xxFE
        TYA              ;; Initialise A with -1
-.L9069 ADC &BFFF,Y      ;; Add sector 0 bytes &FE to &00
+.L9069 ADC ABSWS-1,Y    ;; Add sector 0 bytes &FE to &00
        DEY
        BNE L9069        ;; Loop for all bytes
        TAX              ;; Save result in X
        DEY              ;; Reset Y to &FF again
        TYA              ;; Initialise A with -1
        CLC              ;; Clear carry
-.L9073 ADC &C0FF,Y      ;; Add sector 1 bytes from &FE to &00
+.L9073 ADC ABSWS+&00FF,Y ;; Add sector 1 bytes from &FE to &00
        DEY
        BNE L9073        ;; Loop for all bytes
        RTS
 ;;
 ;; Control block to save FSM
 .L907A EQUB &01
-       EQUB &00
-       EQUB &C0
+       EQUB <ABSWS
+       EQUB >ABSWS
        EQUB &FF
        EQUB &FF
        EQUB &0A
@@ -2731,7 +2731,7 @@ ENDIF
 ;;
 ;; OSFILE &01-&03 - Write Info
 ;; ===========================
-.L9085 STA &C223        ;; Save function
+.L9085 STA ABSWS+&0223  ;; Save function
 IF PATCH_FULL_ACCESS
        JSR L8FE8
 ELSE
@@ -2744,47 +2744,47 @@ ENDIF
 ;; Write Info - file found
 ;; -----------------------
 ;; (&B6)=>file info, (&B8)=>control block
-.L9090 LDA &C223        ;; Get OSFILE function
+.L9090 LDA ABSWS+&0223  ;; Get OSFILE function
        CMP #&03
        BEQ L90B8        ;; Jump past with Exec
        LDY #&05
        LDX #&03
 .L909B LDA (&B8),Y
-       STA &C215,X
+       STA ABSWS+&0215,X
        DEY
        DEX
        BPL L909B
        LDY #&0D
        LDX #&03
-.L90A8 LDA &C215,X
+.L90A8 LDA ABSWS+&0215,X
        STA (&B6),Y
        DEY
        DEX
        BPL L90A8
-       LDA &C223
+       LDA ABSWS+&0223
        CMP #&02
        BEQ L9104
 .L90B8 LDY #&09
        LDX #&03
 .L90BC LDA (&B8),Y
-       STA &C215,X
+       STA ABSWS+&0215,X
        DEY
        DEX
        BPL L90BC
        LDY #&11
        LDX #&03
-.L90C9 LDA &C215,X
+.L90C9 LDA ABSWS+&0215,X
        STA (&B6),Y
        DEY
        DEX
        BPL L90C9
-       LDX &C223
+       LDX ABSWS+&0223
        DEX
        BNE L9104
 ;;
 .L90D8 LDY #&0E
        LDA (&B8),Y      ;; Get access byte
-       STA &C22B
+       STA ABSWS+&022B
 IF PATCH_FULL_ACCESS
        LDY #8
 .WrLp
@@ -2795,7 +2795,7 @@ IF PATCH_FULL_ACCESS
 .WrNotE
         LDA (&B6),Y
         ASL A
-        ROL &C22B
+        ROL ABSWS+&022B
         ROR A
         STA (&B6),Y
         CPY #4
@@ -2818,9 +2818,9 @@ ELSE
        LDY #&03
        LDA (&B6),Y      ;; Check 'D' bit
        BPL L90F2        ;; Jump if a file
-       LSR &C22B
-       LSR &C22B
-.L90EB LSR &C22B        ;; Move 'L' bit down to b0
+       LSR ABSWS+&022B
+       LSR ABSWS+&022B
+.L90EB LSR ABSWS+&022B        ;; Move 'L' bit down to b0
        LDY #&02         ;; Point to 'L' bit
        BPL L90F4
 ;;
@@ -2828,7 +2828,7 @@ ELSE
 ;;
 .L90F4 LDA (&B6),Y      ;; Get filename byte
        ASL A            ;; Drop access bit
-       LSR &C22B        ;; Get supplied access bit
+       LSR ABSWS+&022B        ;; Get supplied access bit
        ROR A            ;; Move into filename byte
        STA (&B6),Y      ;; Store in object info
        INY              ;; Step to next byte
@@ -2852,12 +2852,12 @@ ENDIF
 ;;
        JSR LA50D
        LDA &B4
-       STA &C240
+       STA ABSWS+&0240
        LDA &B5
-       STA &C241
-       LDA #&40
+       STA ABSWS+&0241
+       LDA #<(ABSWS+&0240)
        STA &B8
-       LDA #&C2
+       LDA #>(ABSWS+&0240)
        STA &B9
 .L9127 JSR L8CD4
        BEQ L9131
@@ -2869,20 +2869,20 @@ ENDIF
        LDA (&B6),Y
        BPL L9177
        LDY #&03
-.L913C LDA &C22C,Y
-       STA &C230,Y
+.L913C LDA ABSWS+&022C,Y
+       STA ABSWS+&0230,Y
        DEY
        BPL L913C
        LDA #&FF
-       STA &C22E
-       STA &C22F
+       STA ABSWS+&022E
+       STA ABSWS+&022F
        JSR L9486
-       LDA &C405
+       LDA ABSWS+&0405
        PHP
        JSR L89D8
        LDY #&03
-.L9159 LDA &C230,Y
-       STA &C22C,Y
+.L9159 LDA ABSWS+&0230,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL L9159
        PLP
@@ -2899,27 +2899,27 @@ ENDIF
 .L917F INY
        LDA #&00
        ADC (&B6),Y
-       STA &C224,Y
+       STA ABSWS+&0224,Y
        DEX
        BPL L917F
        LDY #&18
        LDX #&02
 .L918E LDA (&B6),Y
-       STA &C234,X
+       STA ABSWS+&0234,X
        DEY
        DEX
        BPL L918E
        LDY #&03
        LDA (&B6),Y
        BPL L921B
-       LDX &C22F
+       LDX ABSWS+&022F
        CPX #&FF
        BEQ L91A9
-       CPX &C317
+       CPX ABSWS+&0317
        BNE L91CB
 .L91A9 LDX #&02
-.L91AB LDA &C234,X
-       CMP &C22C,X
+.L91AB LDA ABSWS+&0234,X
+       CMP ABSWS+&022C,X
        BNE L91CB
        DEX
        BPL L91AB
@@ -2928,12 +2928,12 @@ ENDIF
        EQUS "Can't delete CSD"
        EQUB &00
 ;;
-.L91CB LDA &C317
-       CMP &C31B
+.L91CB LDA ABSWS+&0317
+       CMP ABSWS+&031B
        BNE L91F9
        LDX #&02
-.L91D5 LDA &C234,X
-       CMP &C318,X
+.L91D5 LDA ABSWS+&0234,X
+       CMP ABSWS+&0318,X
        BNE L91F9
        DEX
        BPL L91D5
@@ -2942,20 +2942,20 @@ ENDIF
        EQUS "Can't delete Library"
        EQUB &00
 ;;
-.L91F9 LDA &C317
-       CMP &C31F
+.L91F9 LDA ABSWS+&0317
+       CMP ABSWS+&031F
        BNE L921B
        LDX #&02
-.L9203 LDA &C234,X
-       CMP &C31C,X
+.L9203 LDA ABSWS+&0234,X
+       CMP ABSWS+&031C,X
        BNE L921B
        DEX
        BPL L9203
        LDA #&02
-       STA &C31C
+       STA ABSWS+&031C
        LDA #&00
-       STA &C31D
-       STA &C31E
+       STA ABSWS+&031D
+       STA ABSWS+&031E
 .L921B LDY #&04
        LDA (&B6),Y
        BMI L9224
@@ -2988,13 +2988,13 @@ ENDIF
 ;;                                                                     NOP
 IF PATCH_UNSUPPORTED_OSFILE
        NOP              ;; Unsupported OSFILE returns A preserved
-       CLR &C2D5
+       CLR ABSWS+&02D5
        ASL A
        TAX
        TYA
 ELSE
        LDX #&00         ;;                             CLR &C2D5
-       STX &C2D5        ;;                             ASL A
+       STX ABSWS+&02D5        ;;                             ASL A
        ASL A            ;; Index into dispatch table   TAX
        TAX              ;;                             TYA
 ENDIF
@@ -3142,19 +3142,19 @@ ENDIF
        JMP LA03C
 ;;
 .L9331 JSR LA714
-       LDA #&D9
+       LDA #<(ABSWS+&08D9)
        STA &B6
-       LDA #&C8
+       LDA #>(ABSWS+&08D9)
        STA &B7
        LDX #&13
        JSR L928F
        JSR L92A8
        EQUB &20, &A8
-       LDA &C8FA
+       LDA ABSWS+&08FA
        JSR L9322
        JSR L92A8
        EQUS ")",&0D,"Drive",&BA
-       LDA &C317
+       LDA ABSWS+&0317
        ASL A
        ROL A
        ROL A
@@ -3169,11 +3169,11 @@ ENDIF
        JSR L928F
        JSR L92A8
        EQUS "Option", &A0
-       LDA &C1FD
+       LDA ABSWS+&01FD
        JSR L9322
        JSR L92A8
        EQUB &20, &A8
-       LDX &C1FD
+       LDX ABSWS+&01FD
        LDA L9426,X
        STA &B6
        LDA #>L9426
@@ -3182,25 +3182,25 @@ ENDIF
        JSR L928F
        JSR L92A8
        EQUS ")",&0D,"Dir.",&A0
-       LDA #&00
+       LDA #<(ABSWS+&0300)
        STA &B6
-       LDA #&C3
+       LDA #>(ABSWS+&0300)
        STA &B7
        LDX #&0A
        JSR L928F
        JSR L92A8
        EQUS "     Lib.",&A0
-       LDA #&0A
+       LDA #<(ABSWS+&030A)
        STA &B6
-       LDA #&C3
+       LDA #>(ABSWS+&030A)
        STA &B7
        LDX #&0A
        JSR L928F
        JSR L92A8
        EQUB &0D,&8D
-.L93CC LDA #&05
+.L93CC LDA #<(ABSWS+&0405)
        STA &B6
-       LDA #&C4
+       LDA #>(ABSWS+&0405)
        STA &B7
        RTS
 ;;
@@ -3210,15 +3210,15 @@ ENDIF
        JSR L9478
 .L93DB JSR L9331
        LDA #&04
-       STA &C22B
+       STA ABSWS+&022B
 .L93E3 LDY #&00
        LDA (&B6),Y
        BEQ L940C
        JSR L92E5
-       DEC &C22B
+       DEC ABSWS+&022B
        BNE L93FC
        LDA #&04
-       STA &C22B
+       STA ABSWS+&022B
        JSR LA03A
        JMP L93FF
 ;;
@@ -3230,7 +3230,7 @@ ENDIF
        BCC L93E3
        INC &B7
        BCS L93E3
-.L940C LDA &C22B
+.L940C LDA ABSWS+&022B
        CMP #&04
        BEQ L9423
        LDA #&86
@@ -3269,16 +3269,16 @@ ENDIF
        AND #&7F
        CMP #&5E
        BNE L946A
-       LDA #&C0
+       LDA #<(ABSWS+&08C0)
        STA &B6
-       LDA #&C8
+       LDA #>(ABSWS+&08C0)
        STA &B7
        BNE L9476
 .L946A CMP #&40
        BNE L9477
-       LDA #&FE
+       LDA #<(ABSWS+&02FE)
        STA &B6
-       LDA #&C2
+       LDA #>(ABSWS+&02FE)
        STA &B7
 .L9476 TYA
 .L9477 RTS
@@ -3287,7 +3287,7 @@ ENDIF
        LDA (&B4),Y
        CMP #&21
        BCS L9486
-       LDX &C317
+       LDX ABSWS+&0317
        INX
        BNE L9477
 .L9486 JSR L8875
@@ -3301,24 +3301,24 @@ ENDIF
 ;;
 .L9499 JSR L9456
        BNE L9496
-.L949E LDY &C22E
+.L949E LDY ABSWS+&022E
        INY
        BNE L94AF
        LDY #&02
-.L94A6 LDA &C314,Y
-       STA &C22C,Y
+.L94A6 LDA ABSWS+&0314,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL L94A6
 .L94AF LDX #&0A
 .L94B1 LDA L883C,X
-       STA &C215,X
+       STA ABSWS+&0215,X
        DEX
        BPL L94B1
        LDX #&02
        LDY #&16
 .L94BE LDA (&B6),Y
-       STA &C21B,X
-       STA &C2FE,Y
+       STA ABSWS+&021B,X
+       STA ABSWS+&02FE,Y
        INY
        DEX
        BPL L94BE
@@ -3418,23 +3418,23 @@ ENDIF
 ;;
 .L9546 JSR L9486
        LDY #&09
-.L954B LDA &C8CC,Y
-       STA &C300,Y
+.L954B LDA ABSWS+&08CC,Y
+       STA ABSWS+&0300,Y
        DEY
        BPL L954B
-       LDA &C22F
+       LDA ABSWS+&022F
        CMP #&FF
        BNE L955E
-       LDA &C317
-.L955E STA &C31F
+       LDA ABSWS+&0317
+.L955E STA ABSWS+&031F
        LDY #&02
-.L9563 LDA &C22C,Y
-       STA &C31C,Y
+.L9563 LDA ABSWS+&022C,Y
+       STA ABSWS+&031C,Y
        DEY
        BPL L9563
        LDA #&FF
-       STA &C22E
-       STA &C22F
+       STA ABSWS+&022E
+       STA ABSWS+&022F
        JMP L89D8
 ;;
 .L9577 LDA #&FF
@@ -3442,22 +3442,22 @@ ENDIF
        JSR LA97A
        LDX #&0F
 .L9580 LDA L9639,X
-       STA &C242,X
+       STA ABSWS+&0242,X
        DEX
        BPL L9580
        LDA &B4
-       STA &C240
+       STA ABSWS+&0240
        LDA &B5
-       STA &C241
-       LDA #&40
+       STA ABSWS+&0241
+       LDA #<(ABSWS+&0240)
        STA &B8
-       LDA #&C2
+       LDA #>(ABSWS+&0240)
        STA &B9
        JSR L8DFE
        LDY #&09
-       LDA &C237
-       ORA &C238
-       ORA &C239
+       LDA ABSWS+&0237
+       ORA ABSWS+&0238
+       ORA ABSWS+&0239
        BEQ L95BE
 .L95AB JSR L836B
        EQUB &C4         ;; ERR=196
@@ -3489,19 +3489,19 @@ ENDIF
        LDA #&00
        TAX
        TAY
-.L95EC STA &CA00,X
-       STA &C900,X
-       STA &CB00,X
-       STA &CC00,X
-       STA &CD00,X
+.L95EC STA ABSWS+&0A00,X
+       STA ABSWS+&0900,X
+       STA ABSWS+&0B00,X
+       STA ABSWS+&0C00,X
+       STA ABSWS+&0D00,X
        INX
        BNE L95EC
        LDX #&04
 .L9600 LDA L84DC,X
-       STA &C900,X
-       STA &CDFA,X
-       LDA &C314,X
-       STA &CDD6,X
+       STA ABSWS+&0900,X
+       STA ABSWS+&0DFA,X
+       LDA ABSWS+&0314,X
+       STA ABSWS+&0DD6,X
        DEX
        BPL L9600
        LDX #&00
@@ -3512,14 +3512,14 @@ ENDIF
        CMP #&21
        BCS L9622
 .L9620 LDA #&0D
-.L9622 STA &CDD9,X
-       STA &CDCC,X
+.L9622 STA ABSWS+&0DD9,X
+       STA ABSWS+&0DCC,X
        INY
        INX
        CPX #&0A
        BNE L9614
        LDA #&0D
-       STA &CDD9,X
+       STA ABSWS+&0DD9,X
        JSR L8A42
        JMP L8F8B
 ;;
@@ -3540,48 +3540,48 @@ ENDIF
        EQUB &FF
        EQUB &FF
 ;;
-.L9649 LDA &C22F
-       CMP &C317
+.L9649 LDA ABSWS+&022F
+       CMP ABSWS+&0317
        BEQ L9654
        INC A
        BNE L966C
 .L9654 LDY #&02
-.L9656 LDA &C2A2,Y
-       CMP &C22C,Y
+.L9656 LDA ABSWS+&02A2,Y
+       CMP ABSWS+&022C,Y
        BNE L966C
        DEY
        BPL L9656
        LDY #&02
-.L9663 LDA &C2A8,Y
-       STA &C22C,Y
+.L9663 LDA ABSWS+&02A8,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL L9663
-.L966C LDA &C31B
-       CMP &C317
+.L966C LDA ABSWS+&031B
+       CMP ABSWS+&0317
        BNE L968C
        LDY #&02
-.L9676 LDA &C2A2,Y
-       CMP &C318,Y
+.L9676 LDA ABSWS+&02A2,Y
+       CMP ABSWS+&0318,Y
        BNE L968C
        DEY
        BPL L9676
        LDY #&02
-.L9683 LDA &C2A8,Y
-       STA &C318,Y
+.L9683 LDA ABSWS+&02A8,Y
+       STA ABSWS+&0318,Y
        DEY
        BPL L9683
-.L968C LDA &C31F
-       CMP &C317
+.L968C LDA ABSWS+&031F
+       CMP ABSWS+&0317
        BNE L96AC
        LDY #&02
-.L9696 LDA &C2A2,Y
-       CMP &C31C,Y
+.L9696 LDA ABSWS+&02A2,Y
+       CMP ABSWS+&031C,Y
        BNE L96AC
        DEY
        BPL L9696
        LDY #&02
-.L96A3 LDA &C2A8,Y
-       STA &C31C,Y
+.L96A3 LDA ABSWS+&02A8,Y
+       STA ABSWS+&031C,Y
        DEY
        BPL L96A3
 .L96AC LDA &CD
@@ -3589,82 +3589,82 @@ ENDIF
        BNE L96B8
        JSR L8F91
        JSR LA992
-.L96B8 LDA &C2A7
-       ORA &C2A6
-       ORA &C2A5
+.L96B8 LDA ABSWS+&02A7
+       ORA ABSWS+&02A6
+       ORA ABSWS+&02A5
        BNE L96C4
        RTS
 ;;
-.L96C4 LDA &C2A7
-       ORA &C2A6
+.L96C4 LDA ABSWS+&02A7
+       ORA ABSWS+&02A6
        BNE L96D4
-       LDA &C2A5
-       CMP &C261
+       LDA ABSWS+&02A5
+       CMP ABSWS+&0261
        BCC L96D7
-.L96D4 LDA &C261
-.L96D7 STA &C21E
-       LDA &C260
-       STA &C217
+.L96D4 LDA ABSWS+&0261
+.L96D7 STA ABSWS+&021E
+       LDA ABSWS+&0260
+       STA ABSWS+&0217
        LDX #&00
-       STX &C216
+       STX ABSWS+&0216
        DEX
-       STX &C218
-       STX &C219
+       STX ABSWS+&0218
+       STX ABSWS+&0219
 .L96EC SEC
-       LDA &C2A5
-       SBC &C261
-       STA &C2A5
-       LDA &C2A6
+       LDA ABSWS+&02A5
+       SBC ABSWS+&0261
+       STA ABSWS+&02A5
+       LDA ABSWS+&02A6
        SBC #&00
-       STA &C2A6
-       LDA &C2A7
+       STA ABSWS+&02A6
+       LDA ABSWS+&02A7
        SBC #&00
-       STA &C2A7
+       STA ABSWS+&02A7
        BCS L9711
-       LDA &C2A5
-       ADC &C261
-       STA &C21E
+       LDA ABSWS+&02A5
+       ADC ABSWS+&0261
+       STA ABSWS+&021E
 .L9711 LDA #&08
-       STA &C21A
-       LDA &C2A2
-       STA &C21D
-       LDA &C2A3
-       STA &C21C
-       LDA &C2A4
-       STA &C21B
+       STA ABSWS+&021A
+       LDA ABSWS+&02A2
+       STA ABSWS+&021D
+       LDA ABSWS+&02A3
+       STA ABSWS+&021C
+       LDA ABSWS+&02A4
+       STA ABSWS+&021B
        JSR L82AA
        LDA #&0A
-       STA &C21A
-       LDA &C2A8
-       STA &C21D
-       LDA &C2A9
-       STA &C21C
-       LDA &C2AA
-       STA &C21B
+       STA ABSWS+&021A
+       LDA ABSWS+&02A8
+       STA ABSWS+&021D
+       LDA ABSWS+&02A9
+       STA ABSWS+&021C
+       LDA ABSWS+&02AA
+       STA ABSWS+&021B
        JSR L82AA
-       LDA &C2A5
-       ORA &C2A6
-       ORA &C2A7
+       LDA ABSWS+&02A5
+       ORA ABSWS+&02A6
+       ORA ABSWS+&02A7
        BEQ L9783
-       LDA &C21E
-       CMP &C261
+       LDA ABSWS+&021E
+       CMP ABSWS+&0261
        BNE L9783
        CLC
-       LDA &C2A2
-       ADC &C261
-       STA &C2A2
+       LDA ABSWS+&02A2
+       ADC ABSWS+&0261
+       STA ABSWS+&02A2
        BCC L976C
-       INC &C2A3
+       INC ABSWS+&02A3
        BNE L976C
-       INC &C2A4
+       INC ABSWS+&02A4
 .L976C CLC
-       LDA &C2A8
-       ADC &C261
-       STA &C2A8
+       LDA ABSWS+&02A8
+       ADC ABSWS+&0261
+       STA ABSWS+&02A8
        BCC L9780
-       INC &C2A9
+       INC ABSWS+&02A9
        BNE L9780
-       INC &C2AA
+       INC ABSWS+&02AA
 .L9780 JMP L96EC
 ;;
 .L9783 LDA &CD
@@ -3673,34 +3673,34 @@ ENDIF
        RTS
 ;;
 .L978A LDA #&C4
-       STA &C217
+       STA ABSWS+&0217
        LDA #&08
-       STA &C21A
-       LDA &C314
-       STA &C21D
-       LDA &C315
-       STA &C21C
-       LDA &C316
-       STA &C21B
+       STA ABSWS+&021A
+       LDA ABSWS+&0314
+       STA ABSWS+&021D
+       LDA ABSWS+&0315
+       STA ABSWS+&021C
+       LDA ABSWS+&0316
+       STA ABSWS+&021B
        LDA #&05
-       STA &C21E
+       STA ABSWS+&021E
        JMP L82AE
 ;;
 .L97AE LDA #&00
-       STA &C2AB
-       STA &C2AC
-       STA &C2AD
+       STA ABSWS+&02AB
+       STA ABSWS+&02AC
+       STA ABSWS+&02AD
 .L97B9 LDA #&FF
-       STA &C2A2
-       STA &C2A3
-       STA &C2A4
+       STA ABSWS+&02A2
+       STA ABSWS+&02A3
+       STA ABSWS+&02A4
        JSR L93CC
 .L97C7 LDY #&00
        LDA (&B6),Y
        BNE L97DC
-       LDA &C2A2
-       AND &C2A3
-       AND &C2A4
+       LDA ABSWS+&02A2
+       AND ABSWS+&02A3
+       AND ABSWS+&02A4
        INC A
        BNE L981E
        JMP L8F91
@@ -3708,7 +3708,7 @@ ENDIF
 .L97DC LDY #&16
        LDX #&02
        SEC
-.L97E1 LDA &C295,Y
+.L97E1 LDA ABSWS+&0295,Y
        SBC (&B6),Y
        INY
        DEX
@@ -3717,7 +3717,7 @@ ENDIF
        LDY #&16
        LDX #&02
        SEC
-.L97F1 LDA &C28C,Y
+.L97F1 LDA ABSWS+&028C,Y
        SBC (&B6),Y
        INY
        DEX
@@ -3726,7 +3726,7 @@ ENDIF
        LDY #&16
        LDX #&02
 .L9800 LDA (&B6),Y
-       STA &C28C,Y
+       STA ABSWS+&028C,Y
        INY
        DEX
        BPL L9800
@@ -3746,13 +3746,13 @@ ENDIF
        LDA &B5
        STA &B7
        LDY #&02
-.L9828 LDA &C2A2,Y
-       STA &C2AB,Y
+.L9828 LDA ABSWS+&02A2,Y
+       STA ABSWS+&02AB,Y
        DEY
        BPL L9828
        LDX #&00
        STX &B2
-.L9835 CPX &C1FE
+.L9835 CPX ABSWS+&01FE
        BCC L983D
        JMP L97B9
 ;;
@@ -3762,8 +3762,8 @@ ENDIF
        STX &B2
        LDY #&02
 .L9844 DEX
-       LDA &C000,X
-       CMP &C2A2,Y
+       LDA ABSWS+&0000,X
+       CMP ABSWS+&02A2,Y
        BCS L9851
        LDX &B2
        BRA L9835
@@ -3778,10 +3778,10 @@ ENDIF
        CLC
        PHP
 .L9860 PLP
-       LDA &BFFA,X
-       ADC &C0FA,X
+       LDA ABSWS-6,X
+       ADC ABSWS+&00FA,X
        PHP
-       CMP &C2A2,Y
+       CMP ABSWS+&02A2,Y
        BEQ L9871
        PLP
 .L986E JMP L97B9
@@ -3798,20 +3798,20 @@ ENDIF
 .L9880 INY
        LDA (&B6),Y
        ADC #&00
-       STA &C292,Y
-       STA &C22A,Y
-       STA &C224,Y
-       LDA &C2A2,X
-       STA &C234,X
+       STA ABSWS+&0292,Y
+       STA ABSWS+&022A,Y
+       STA ABSWS+&0224,Y
+       LDA ABSWS+&02A2,X
+       STA ABSWS+&0234,X
        DEX
        BPL L9880
        JSR L84E1
        JSR L865B
        LDX #&02
        LDY #&18
-.L98A1 LDA &C23A,X
+.L98A1 LDA ABSWS+&023A,X
        STA (&B6),Y
-       STA &C2A8,X
+       STA ABSWS+&02A8,X
        DEY
        DEX
        BPL L98A1
@@ -3820,10 +3820,10 @@ ENDIF
 ;;
 .L98B3 LDA #&00
        STA &C0
-       STA &C253
-       STA &C254
+       STA ABSWS+&0253
+       STA ABSWS+&0254
        LDA #&02
-       STA &C252
+       STA ABSWS+&0252
        LDA #&CD
        STA &C1
        LDA #<L9941
@@ -3832,8 +3832,8 @@ ENDIF
        STA &B5
 .L98CE JSR L9486
        LDY #&02
-.L98D3 LDA &C252,Y
-       STA &C8D6,Y
+.L98D3 LDA ABSWS+&0252,Y
+       STA ABSWS+&08D6,Y
        DEY
        BPL L98D3
        JSR L97AE
@@ -3857,8 +3857,8 @@ ENDIF
        STA (&C0),Y
        INC &C0
        LDX #&02
-.L9908 LDA &C314,X
-       STA &C252,X
+.L9908 LDA ABSWS+&0314,X
+       STA ABSWS+&0252,X
        DEX
        BPL L9908
        BMI L98CE
@@ -3914,7 +3914,7 @@ ENDIF
        ORA (&B6),Y      ;; Copy 'D' bit into 'R' bit
        STA (&B6),Y      ;; Forces dirs to always have 'R'
 ;;
-.L996A STA &C22B        ;; Store 'E' or 'D'+'R' bit
+.L996A STA ABSWS+&022B  ;; Store 'E' or 'D'+'R' bit
        LDY #&00         ;; Step past filename
 .L996F LDA (&B4),Y
        CMP #&20
@@ -3935,7 +3935,7 @@ ENDIF
 ;;
 .L998D LDA (&B4),Y      ;; Get access character
        AND #&DF         ;; Force to upper case
-       BIT &C22B        ;; Check 'E'/'D' flag
+       BIT ABSWS+&022B  ;; Check 'E'/'D' flag
        BMI L99AA        ;; Jump past if already 'E' or 'D'
        CMP #&45
        BNE L99AA        ;; Jump past if not setting 'E'
@@ -3944,13 +3944,13 @@ ENDIF
        LDA (&B6),Y
        ORA #&80
        STA (&B6),Y      ;; Set 'E' bit
-       STA &C22B        ;; Set 'E'/'D' flag
+       STA ABSWS+&022B  ;; Set 'E'/'D' flag
        BMI L99BD
 ;;
 .L99AA LDX #&02         ;; Check if access character
 .L99AC CMP L931D,X
        BEQ L99CE        ;; Matching character
-       BIT &C22B
+       BIT ABSWS+&022B
        BMI L99B9        ;; If 'E'/'D' only check for setting 'L'
        DEX
        BPL L99AC        ;; Otherwise check all access characters
@@ -3983,9 +3983,9 @@ ENDIF
        PHA
        LDA &B5
        PHA
-       LDA #&40
+       LDA #<(ABSWS+&0240)
        STA &B8
-       LDA #&C2
+       LDA #>(ABSWS+&0240)
        STA &B9
        JSR L94EE
        PLA
@@ -4005,7 +4005,7 @@ ENDIF
        DEX
        BPL L9A0F
        JSR LA03A
-       STZ &C2D5
+       STZ ABSWS+&02D5
 .L9A29 LDA &B4
        PHA
        LDA &B5
@@ -4356,14 +4356,14 @@ ENDIF
 .L9B94 LDA #&06
        JSR L9A4C        ;; Tell current FS new FS taking over
        LDA #&10
-       STA &C200
-       STZ &C2D7
+       STA ABSWS+&0200
+       STZ ABSWS+&02D7
 IF PATCH_SD
        STZ mmcstate%    ;; mark the mmc system as un-initialized
        JSR initializeDriveTable
 ENDIF
        JSR L9A7F        ;; Get ADFS CMOS byte
-       STA &C2D8        ;; Store in workspace
+       STA ABSWS+&02D8        ;; Store in workspace
        LDY #&0D         ;; Initialise vectors
 .L9BA9 LDA L9CB6,Y
        STA &0212,Y
@@ -4389,20 +4389,20 @@ ENDIF
        JSR &FFF4        ;; Claim Vectors
        JSR LBA57        ;; Set a flag
        JSR LA767        ;; Check workspace checksum
-       STZ &C208
-       STZ &C20C
-       STZ &C210
-       STZ &C214
+       STZ ABSWS+&0208
+       STZ ABSWS+&020C
+       STZ ABSWS+&0210
+       STZ ABSWS+&0214
        LDA #&01
-       STA &C204
+       STA ABSWS+&0204
        LDY #&FB         ;; Copy workspace to &C300
 .L9BF0 LDA (&BA),Y
-       STA &C300,Y
+       STA ABSWS+&0300,Y
        DEY
        BNE L9BF0        ;; Loop for 252 bytes
        LDA (&BA),Y      ;; Do zeroth byte
-       STA &C300,Y
-       LDA &C320        ;; Get *OPT1 setting
+       STA ABSWS+&0300,Y
+       LDA ABSWS+&0320  ;; Get *OPT1 setting
        AND #&04
        STA &CD          ;; Put into &CD
        JSR LA7D4        ;; Check some settings
@@ -4415,17 +4415,17 @@ ENDIF
        BNE L9C18        ;; No, jump to keep context
        JSR L849A        ;; Set context to &FFFFFFFF when *fadfs
 .L9C18 LDY #&03         ;; Copy current context to backup context
-.L9C1A LDA &C314,Y
-       STA &C22C,Y
+.L9C1A LDA ABSWS+&0314,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL L9C1A
        JSR L89D8        ;; Get FSM and root from :0 if context<>-1
-       LDX &C317        ;; Get current drive
+       LDX ABSWS+&0317  ;; Get current drive
        INX
        BEQ L9C7D        ;; No drive (eg *fadfs), jump ahead
        JSR LB4CD
 IF PATCH_IDE OR PATCH_SD
-       LDA &C31B        ;; Lib not unset, jump ahead
+       LDA ABSWS+&031B  ;; Lib not unset, jump ahead
        INC A
        BNE L9C7A
        LDA &CD          ;; If HD, look for $.Library
@@ -4435,12 +4435,12 @@ IF PATCH_IDE OR PATCH_SD
        EQUB &1B
        EQUB &C3
 ELSE
-       LDA &C318        ;; Is LIB set to ":0.$"?
+       LDA ABSWS+&0318        ;; Is LIB set to ":0.$"?
        CMP #&02
        BNE L9C7A
-       LDA &C319
-       ORA &C31A
-       ORA &C31B
+       LDA ABSWS+&0319
+       ORA ABSWS+&031A
+       ORA ABSWS+&031B
 ENDIF
        BNE L9C7A        ;; No, don't look for Library
 .L9C41 LDA #<L9CAE
@@ -4458,16 +4458,16 @@ ENDIF
 .L9C5B LDX #&02
        LDY #&18
 .L9C5F LDA (&B6),Y
-       STA &C318,X
+       STA ABSWS+&0318,X
        DEY
        DEX
        BPL L9C5F
-       LDA &C317
-       STA &C31B
+       LDA ABSWS+&0317
+       STA ABSWS+&031B
        LDY #&09
 .L9C70 LDA (&B6),Y
        AND #&7F
-       STA &C30A,Y
+       STA ABSWS+&030A,Y
        DEY
        BPL L9C70
 .L9C7A JSR L89D8
@@ -4481,12 +4481,12 @@ ENDIF
 .L9C8B PLA              ;; Get boot flag
        PHA
        BNE L9CA8        ;; No boot, jump forward
-       LDX &C317
+       LDX ABSWS+&0317
        INX
        BNE L9C9B
-       STX &C26F
+       STX ABSWS+&026F
        JSR LA1A1
-.L9C9B LDY &C1FD        ;; Get boot option
+.L9C9B LDY ABSWS+&01FD  ;; Get boot option
        BEQ L9CA8        ;; Zero, jump to finish
        LDX L9A8F-1,Y    ;; Get
        LDY #>L9A8F
@@ -4655,7 +4655,7 @@ ENDIF
        STA &BB
        LDY #&0F         ;; Copy control block to &C215
 .L9D86 LDA (&BA),Y
-       STA &C215,Y
+       STA ABSWS+&0215,Y
        DEY
        BPL L9D86
 ;;
@@ -4678,20 +4678,20 @@ ENDIF
 ;;   &C223 14  Length3
 ;;   &C224 15
 ;;
-       LDA &C21A        ;; Get command
+       LDA ABSWS+&021A        ;; Get command
        AND #&FD         ;; Mask out bit 1
        CMP #&08         ;; Is it &08 or &0A, Read or Write?
        BEQ L9DA8        ;; Jump forward with Read and Write
 ;;
-.L9D97 LDX #&15
-       LDY #&C2
-       INC &C317
+.L9D97 LDX #<(ABSWS+&0215)
+       LDY #>(ABSWS+&0215)
+       INC ABSWS+&0317
        BEQ L9DA3
-       DEC &C317
+       DEC ABSWS+&0317
 .L9DA3 JSR L80A2
        BPL L9DB0        ;; Jump to exit
 ;;
-.L9DA8 LDA &C21E        ;; Get Sector Count
+.L9DA8 LDA ABSWS+&021E        ;; Get Sector Count
        BNE L9D97        ;; If not zero jump back to use it
        JSR L8A4A        ;; Do the SCSI call
 ;;
@@ -4715,14 +4715,14 @@ ENDIF
 .L9DC0 CMP #&73
        BNE L9DD0
        LDY #&04
-.L9DC6 LDA &C2D0,Y
+.L9DC6 LDA ABSWS+&02D0,Y
        STA (&F0),Y
        DEY
        BPL L9DC6
        BMI L9DB4
 .L9DD0 CMP #&70
        BNE L9DE3
-       LDA &C8FA
+       LDA ABSWS+&08FA
        LDY #&00
        STA (&F0),Y
        LDA &CD
@@ -4734,7 +4734,7 @@ ENDIF
        BNE L9DBA
        JSR LA1EA
        LDY #&03
-.L9DEC LDA &C215,Y
+.L9DEC LDA ABSWS+&0215,Y
        STA (&F0),Y
        DEY
        BPL L9DEC
@@ -4835,12 +4835,12 @@ ENDIF
 ;; ===========================
 .L9E9D STX &B4          ;; Store X and Y in &B4/5
        STY &B5
-       STA &C2D6        ;; Store function
+       STA ABSWS+&02D6        ;; Store function
        TAX
        BMI L9EBA        ;; Function<0 - exit
        CMP #&0C
        BCS L9EBA        ;; Function>11 - exit
-       STZ &C2D5        ;; Clear
+       STZ ABSWS+&02D5  ;; Clear
        LDA L9EC7,X      ;; Push routine address onto stack
        PHA
        LDA L9EBB,X
@@ -4882,9 +4882,9 @@ ENDIF
 ;; FSC 3 - *command
 ;; ================
 .L9ED3 JSR L8328
-       LDA #&A2
+       LDA #<(ABSWS+&02A2)
        STA &B8
-       LDA #&C2
+       LDA #>(ABSWS+&02A2)
        STA &B9
        JSR LA50D        ;; Skip spaces, etc
        LDX #&FD         ;; Point to table start minus 3
@@ -5002,7 +5002,7 @@ ENDIF
        JSR LB546
        LDA &B5
        AND #&03
-       STA &C1FD
+       STA ABSWS+&01FD
        JMP L8F91
 ;;
 .LA02A JSR L836B
@@ -5045,9 +5045,9 @@ ENDIF
        LDY #&01
        LDX #&02
        SEC
-.LA079 LDA &C0FB,Y
-       SBC &C215,Y
-       STA &C215,Y
+.LA079 LDA ABSWS+&00FB,Y
+       SBC ABSWS+&0215,Y
+       STA ABSWS+&0215,Y
        INY
        DEX
        BPL LA079
@@ -5058,7 +5058,7 @@ ENDIF
 .LA092 JSR L92A8
        EQUS "Address :  Length", &8D
        LDX #&00
-.LA0A9 CPX &C1FE
+.LA0A9 CPX ABSWS+&01FE
        BEQ LA091
        INX
        INX
@@ -5066,7 +5066,7 @@ ENDIF
        STX &C6
        LDY #&02
 .LA0B5 DEX
-       LDA &C000,X
+       LDA ABSWS+&0000,X
        JSR L9322
        DEY
        BPL LA0B5
@@ -5085,9 +5085,9 @@ ENDIF
 ;;
 ;; FSC 8 - OSCLI being processed
 ;; =============================
-.LA0DC LDX &C2D9
+.LA0DC LDX ABSWS+&02D9
        BNE LA091        ;; Exit
-       LDX &C1FE        ;; Get FSM size
+       LDX ABSWS+&01FE  ;; Get FSM size
        CPX #&E1
        BCC LA091        ;; If FSM not filling up, exit
        JSR L92A8        ;; Print message
@@ -5097,29 +5097,29 @@ ENDIF
 ;;
 ;; *BYE
 ;; ====
-.LA103 LDA &C317        ;; Get current drive
+.LA103 LDA ABSWS+&0317  ;; Get current drive
        PHA              ;; Save current drive
        TAX
        INX
        BEQ LA10E        ;; No drive selected
        JSR LB210        ;; Do CLOSE#0
 .LA10E LDA #&60
-       STA &C317        ;; Set drive to 3
+       STA ABSWS+&0317  ;; Set drive to 3
 .LA113 LDX #<LA12A
        LDY #>LA12A      ;; Point to control block
        JSR L80A2        ;; Do command &1B - park heads
-       LDA &C317        ;; Get current drive
+       LDA ABSWS+&0317  ;; Get current drive
        SEC
        SBC #&20         ;; Step back one
-       STA &C317
+       STA ABSWS+&0317
        BCS LA113        ;; Loop for drives 3 to 0
        PLA
-       STA &C317        ;; Restore current drive
+       STA ABSWS+&0317  ;; Restore current drive
        RTS
 ;;
 .LA12A EQUB &00
-       EQUB &00         ;; ;; &FFFFC900
-       EQUB &C9
+       EQUB <(ABSWS+&0900) ;; ;; &FFFFC900
+       EQUB >(ABSWS+&0900)
        EQUB &FF
        EQUB &FF
        EQUB &1B         ;; ;; Command &1B
@@ -5130,26 +5130,26 @@ ENDIF
        EQUB &00
 ;;
 .LA135 JSR LA50D
-       LDY &C317
+       LDY ABSWS+&0317
        INY
        BEQ LA13F
        DEY
-.LA13F STY &C26F
+.LA13F STY ABSWS+&026F
        LDY #&00
        LDA (&B4),Y
        CMP #&20
        BCC LA150
        JSR L8847
-       STA &C26F        ;; Set drive number
+       STA ABSWS+&026F   ;; Set drive number
 .LA150 RTS
 ;;
 .LA151 JSR LA135
        LDX #&09
-.LA156 LDA &C3AC,X
+.LA156 LDA ABSWS+&03AC,X
        BEQ LA16F
-       LDA &C3B6,X
+       LDA ABSWS+&03B6,X
        AND #&E0
-       CMP &C26F
+       CMP ABSWS+&026F
        BNE LA16F
        CLC
        TXA
@@ -5159,19 +5159,19 @@ ENDIF
        JSR LB213
 .LA16F DEX
        BPL LA156
-       LDA &C317
-       CMP &C26F
+       LDA ABSWS+&0317
+       CMP ABSWS+&026F
        BNE LA1B9
        LDA #&FF
-       STA &C317
-       STA &C316
+       STA ABSWS+&0317
+       STA ABSWS+&0316
        LDX #&00
        JSR LA189
        BRA LA1B9
 ;;
 .LA189 LDY #&09
 .LA18B LDA LA196-2,Y
-       STA &C300,X
+       STA ABSWS+&0300,X
        INX
        DEY
        BPL LA18B
@@ -5182,8 +5182,8 @@ ENDIF
 ;; *MOUNT
 ;; ======
 .LA19E JSR LA135        ;; Scan drive number parameter
-.LA1A1 LDA &C26F        ;; Get drive
-       STA &C317        ;; Set current drive
+.LA1A1 LDA ABSWS+&026F  ;; Get drive
+       STA ABSWS+&0317  ;; Set current drive
        LDX #<LA1DF
        LDY #>LA1DF
        JSR L80A2        ;; Do SCSI command &1B - Park
@@ -5192,25 +5192,25 @@ ENDIF
        LDA #>(LA2EB-1)
        STA &B5          ;; Point to LA2EA
        JSR L9546        ;; Do something
-.LA1B9 LDA &C31F        ;; Get previous drive
-       CMP &C26F        ;; Compare with ???
+.LA1B9 LDA ABSWS+&031F  ;; Get previous drive
+       CMP ABSWS+&026F  ;; Compare with ???
        BNE LA1C9        ;; If different, jump past
        LDA #&FF
-       STA &C31E        ;; Set previous directory to &FFFFxxxx
-       STA &C31F
-.LA1C9 LDA &C31B        ;; Get library drive
-       CMP &C26F        ;; Compare with ???
+       STA ABSWS+&031E  ;; Set previous directory to &FFFFxxxx
+       STA ABSWS+&031F
+.LA1C9 LDA ABSWS+&031B  ;; Get library drive
+       CMP ABSWS+&026F  ;; Compare with ???
        BNE LA1DE        ;; If different, jump past
        LDA #&FF
-       STA &C31A        ;; Set library to &FFFFxxxx
-       STA &C31B
+       STA ABSWS+&031A  ;; Set library to &FFFFxxxx
+       STA ABSWS+&031B
        LDX #&0A
        JSR LA189        ;; Set library name to "Unset"
 .LA1DE RTS
 ;;
 .LA1DF EQUB &00         ;; ;; Flag = &00
-       EQUB &00         ;; ;; &FFFFC900
-       EQUB &C9
+       EQUB <(ABSWS+&0900) ;; ;; &FFFFC900
+       EQUB >(ABSWS+&0900)
        EQUB &FF
        EQUB &FF
        EQUB &1B         ;; ;; Command &1B - Park
@@ -5222,55 +5222,55 @@ ENDIF
 ;;
 .LA1EA LDA #&00
        LDX #&03
-.LA1EE STA &C215,X
-       STA &C227,X
+.LA1EE STA ABSWS+&0215,X
+       STA ABSWS+&0227,X
        DEX
        BPL LA1EE
        JSR L8632
        LDX #&02
-.LA1FC LDA &C25D,X
-       STA &C216,X
+.LA1FC LDA ABSWS+&025D,X
+       STA ABSWS+&0216,X
        DEX
        BPL LA1FC
        RTS
 ;;
-.LA206 LDA &C218
+.LA206 LDA ABSWS+&0218
        JSR L9322
-       LDA &C217
+       LDA ABSWS+&0217
        JSR L9322
-       LDA &C216
+       LDA ABSWS+&0216
        JSR L9322
        JSR L92A8
        EQUS " Sectors =", &A0
        LDX #&1F
-       STX &C233
+       STX ABSWS+&0233
        LDA #&00
        LDX #&09
-.LA22F STA &C240,X
+.LA22F STA ABSWS+&0240,X
        DEX
        BPL LA22F
-.LA235 ASL &C215
-       ROL &C216
-       ROL &C217
-       ROL &C218
+.LA235 ASL ABSWS+&0215
+       ROL ABSWS+&0216
+       ROL ABSWS+&0217
+       ROL ABSWS+&0218
        LDX #&00
        LDY #&09
-.LA245 LDA &C240,X
+.LA245 LDA ABSWS+&0240,X
        ROL A
        CMP #&0A
        BCC LA24F
        SBC #&0A
-.LA24F STA &C240,X
+.LA24F STA ABSWS+&0240,X
        INX
        DEY
        BPL LA245
-       DEC &C233
+       DEC ABSWS+&0233
        BPL LA235
        LDY #&20
        LDX #&08
 .LA25F BNE LA263
        LDY #&2C
-.LA263 LDA &C240,X
+.LA263 LDA ABSWS+&0240,X
        BNE LA270
        CPY #&2C
        BEQ LA270
@@ -5302,7 +5302,7 @@ ENDIF
        CMP #&20
        BCS LA2AB
 .LA2A9 LDA #&0D
-.LA2AB STA &C8D9,Y
+.LA2AB STA ABSWS+&08D9,Y
        INY
        CPY #&13
        BNE LA29D
@@ -5319,11 +5319,11 @@ ENDIF
        BNE LA2DB
        TYA
        BMI LA2DB
-       STA &C260
+       STA ABSWS+&0260
        LDA #&80
        SEC
-       SBC &C260
-       STA &C261
+       SBC ABSWS+&0260
+       STA ABSWS+&0261
        JMP LA377
 ;;
 .LA2DB JSR L836B
@@ -5331,10 +5331,10 @@ ENDIF
        EQUS "Bad compact"
        EQUB &00
 ;;
-.LA2EB STA &C215
+.LA2EB STA ABSWS+&0215
        INY
        LDA (&B4),Y
-       STA &C216
+       STA ABSWS+&0216
        INY
        LDA (&B4),Y
        CMP #&20
@@ -5345,16 +5345,16 @@ ENDIF
        LDA (&B4),Y
        CMP #&20
        BEQ LA2FF
-       STA &C217
+       STA ABSWS+&0217
        INY
        LDA (&B4),Y
-       STA &C218
+       STA ABSWS+&0218
        CMP #&21
        BCS LA31F
-       LDA &C217
-       STA &C218
+       LDA ABSWS+&0217
+       STA ABSWS+&0218
        LDA #&30
-       STA &C217
+       STA ABSWS+&0217
        DEY
 .LA31F INY
        LDA (&B4),Y
@@ -5362,14 +5362,14 @@ ENDIF
        BEQ LA31F
        BCS LA2DB
        LDX #&03
-.LA32A LDA &C215,X
+.LA32A LDA ABSWS+&0215,X
        CMP #&30
        BCC LA2DB
        CMP #&3A
        BCS LA33D
        SEC
        SBC #&30
-       STA &C215,X
+       STA ABSWS+&0215,X
        BPL LA34C
 .LA33D AND #&5F
        CMP #&41
@@ -5377,23 +5377,23 @@ ENDIF
        CMP #&47
        BCS LA2DB
        SBC #&36
-       STA &C215,X
+       STA ABSWS+&0215,X
 .LA34C DEX
        BPL LA32A
        INX
        JSR LA389
        BMI LA2DB
-       STA &C260
+       STA ABSWS+&0260
        LDX #&02
        JSR LA389
        BPL LA362
 .LA35F JMP LA2DB
 ;;
 .LA362 BEQ LA35F
-       STA &C261
+       STA ABSWS+&0261
        CLC
-       LDA &C260
-       ADC &C261
+       LDA ABSWS+&0260
+       ADC ABSWS+&0261
        BPL LA377
        CMP #&80
        BEQ LA377
@@ -5408,12 +5408,12 @@ ENDIF
        TRB &CD
        RTS
 ;;
-.LA389 LDA &C215,X
+.LA389 LDA ABSWS+&0215,X
        ASL A
        ASL A
        ASL A
        ASL A
-       ORA &C216,X
+       ORA ABSWS+&0216,X
        RTS
 ;;
 .LA394 JSR LA4F5
@@ -5428,15 +5428,15 @@ ENDIF
        BCS LA3CB
        PLA
        STA &B4
-       STA &C240
+       STA ABSWS+&0240
        PLA
        STA &B5
-       STA &C241
+       STA ABSWS+&0241
        RTS
 ;;
 .LA3B5 JSR LA4B1
        JSR L89D8
-       LDA &C2D6        ;; Get FSC function
+       LDA ABSWS+&02D6  ;; Get FSC function
        CMP #&0B         ;; Was this Run from libfs?
        BEQ LA3CB        ;; Yes, jump to error
        LDA #&0B         ;; Otherwise, pass on to libfs
@@ -5467,9 +5467,9 @@ ENDIF
        BNE LA3B5
        JSR LA4B1
 .LA3FE LDA &B4
-       STA &C2A2
+       STA ABSWS+&02A2
        LDA &B5
-       STA &C2A3
+       STA ABSWS+&02A3
        LDY #&0E
        LDA (&B6),Y
        LDX #&02
@@ -5483,7 +5483,7 @@ ENDIF
        LDY &B7
        LDA #&40
        JSR LB213
-       STA &C332
+       STA ABSWS+&0332
        LDX #<L9A9C         ;; Point to E.-ADFS-$.!BOOT
        LDY #>L9A9C
        JMP &FFF7
@@ -5502,9 +5502,9 @@ ENDIF
        EQUB &00
 ;;
 .LA43F LDA #&A5
-       STA &C2A8
-       LDX #&A2
-       LDY #&C2
+       STA ABSWS+&02A8
+       LDX #<(ABSWS+&02A2)
+       LDY #>(ABSWS+&02A2)
        STX &B8
        STY &B9
        JSR L8BBE
@@ -5516,47 +5516,47 @@ ENDIF
        JMP L8BFB
 ;;
 .LA45C JSR L8C1B
-       LDA &C2AB
+       LDA ABSWS+&02AB
        CMP #&FF
        BNE LA472
-       LDA &C2AA
+       LDA ABSWS+&02AA
        CMP #&FE
        BCC LA472
 .LA46D LDA #&01
-       JMP (&C2A8)
+       JMP (ABSWS+&02A8)
 ;;
 .LA472 BIT &CD
        BPL LA46D
        JSR L8032
-       LDX #&A8
-       LDY #&C2
+       LDX #<(ABSWS+&02A8)
+       LDY #>(ABSWS+&02A8)
        LDA #&04
        JMP &0406
 ;;
 .LA482 JSR L9486
        LDY #&09
-.LA487 LDA &C8CC,Y
-       STA &C30A,Y
+.LA487 LDA ABSWS+&08CC,Y
+       STA ABSWS+&030A,Y
        DEY
        BPL LA487
        LDY #&03
-.LA492 LDA &C314,Y
-       STA &C318,Y
+.LA492 LDA ABSWS+&0314,Y
+       STA ABSWS+&0318,Y
        DEY
        BPL LA492
 .LA49B JMP L89D8
 ;;
 .LA49E LDY #&03
-.LA4A0 LDA &C314,Y
-       STA &C230,Y
-       LDA &C318,Y
-       STA &C22C,Y
+.LA4A0 LDA ABSWS+&0314,Y
+       STA ABSWS+&0230,Y
+       LDA ABSWS+&0318,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL LA4A0
        BMI LA49B
 .LA4B1 LDY #&03
-.LA4B3 LDA &C230,Y
-       STA &C22C,Y
+.LA4B3 LDA ABSWS+&0230,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL LA4B3
        RTS
@@ -5572,16 +5572,16 @@ ENDIF
        JMP L89D8
 ;;
 .LA4D5 LDY #&03
-.LA4D7 LDA &C31C,Y
-       STA &C22C,Y
-       LDA &C314,Y
-       STA &C31C,Y
+.LA4D7 LDA ABSWS+&031C,Y
+       STA ABSWS+&022C,Y
+       LDA ABSWS+&0314,Y
+       STA ABSWS+&031C,Y
        DEY
        BPL LA4D7
        JSR L89D8
        LDY #&09
-.LA4EB LDA &C8CC,Y
-       STA &C300,Y
+.LA4EB LDA ABSWS+&08CC,Y
+       STA ABSWS+&0300,Y
        DEY
        BPL LA4EB
        RTS
@@ -5668,9 +5668,9 @@ ENDIF
        BEQ LA579
 .LA580 JSR LA394
        JSR LA534
-       LDA #&40
+       LDA #<(ABSWS+&0240)
        STA &B8
-       LDA #&C2
+       LDA #>(ABSWS+&0240)
        STA &B9
        JSR L8CED
        PHP
@@ -5679,15 +5679,15 @@ ENDIF
        BNE LA5A5
        LDA &B6
        LDY #&03
-.LA59C STA &C234,Y
-       LDA &C313,Y
+.LA59C STA ABSWS+&0234,Y
+       LDA ABSWS+&0313,Y
        DEY
        BPL LA59C
-.LA5A5 LDA &C22E
+.LA5A5 LDA ABSWS+&022E
        BPL LA5B5
        LDY #&02
-.LA5AC LDA &C314,Y
-       STA &C22C,Y
+.LA5AC LDA ABSWS+&0314,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL LA5AC
 .LA5B5 JSR L89D8
@@ -5701,9 +5701,9 @@ ENDIF
        JSR L8D1B
        LDY #&03
        LDA &B6
-.LA5CA CMP &C234,Y
+.LA5CA CMP ABSWS+&0234,Y
        BNE LA625
-       LDA &C313,Y
+       LDA ABSWS+&0313,Y
        DEY
        BPL LA5CA
        PLA
@@ -5730,7 +5730,7 @@ ENDIF
 .LA5FA LDY #&09
 .LA5FC LDA (&B6),Y
        AND #&80
-       STA &C22B
+       STA ABSWS+&022B
        LDA (&B4),Y
        AND #&7F
        CMP #&22
@@ -5738,7 +5738,7 @@ ENDIF
        CMP #&21
        BCS LA611
 .LA60F LDA #&0D
-.LA611 ORA &C22B
+.LA611 ORA ABSWS+&022B
        STA (&B6),Y
        DEY
        BPL LA5FC
@@ -5748,7 +5748,7 @@ ENDIF
 ;;
 .LA622 JMP L95AB
 ;;
-.LA625 LDA &C237
+.LA625 LDA ABSWS+&0237
        BNE LA622
        LDY #&09
        LDA (&B6),Y
@@ -5758,24 +5758,24 @@ ENDIF
        LDY #&0A
        LDX #&07
 .LA639 LDA (&B6),Y
-       STA &C238,Y
+       STA ABSWS+&0238,Y
        INY
        DEX
        BPL LA639
-       STZ &C24A
-       STZ &C24B
-       STZ &C24C
-       STZ &C24D
+       STZ ABSWS+&024A
+       STZ ABSWS+&024B
+       STZ ABSWS+&024C
+       STZ ABSWS+&024D
        LDX #&03
 .LA650 LDA (&B6),Y
-       STA &C23C,Y
+       STA ABSWS+&023C,Y
        INY
        DEX
        BPL LA650
        LDY #&00
 .LA65B LDA (&B6),Y
        ROL A
-       ROL &C25D
+       ROL ABSWS+&025D
        INY
        CPY #&04
        BNE LA65B
@@ -5783,21 +5783,21 @@ ENDIF
        LDY #&18
        LDX #&02
 .LA66D LDA (&B6),Y
-       STA &C23A,X
+       STA ABSWS+&023A,X
        DEY
        DEX
        BPL LA66D
        JSR L89D8
-       LDA #&40
+       LDA #<(ABSWS+&0240)
        STA &B8
-       LDA #&C2
+       LDA #>(ABSWS+&0240)
        STA &B9
        JSR L8DFE
        JSR L8E7A
        LDY #&03
 .LA689 LDA (&B6),Y
        ASL A
-       ROR &C25D
+       ROR ABSWS+&025D
        ROR A
        STA (&B6),Y
        DEY
@@ -5813,7 +5813,7 @@ ENDIF
        STA &B4
        JSR L8FE8
        LDX #&05
-.LA6AF STZ &C234,X
+.LA6AF STZ ABSWS+&0234,X
        DEX
        BPL LA6AF
        JSR L921B
@@ -5825,36 +5825,36 @@ ENDIF
        RTS
 ;;
 .LA6C2 LDY #&02
-.LA6C4 LDA &C314,Y
-       STA &C270,Y
+.LA6C4 LDA ABSWS+&0314,Y
+       STA ABSWS+&0270,Y
        DEY
        BPL LA6C4
        LDY #&09
 .LA6CF LDA (&B6),Y
        AND #&7F
-       STA &C274,Y
+       STA ABSWS+&0274,Y
        DEY
        BPL LA6CF
-       LDA #&74
+       LDA #<(ABSWS+&0274)
        STA &B4
-       LDA #&C2
+       LDA #>(ABSWS+&0274)
        STA &B5
        JSR L9486
        LDY #&09
-.LA6E6 LDA &C274,Y
-       STA &C8CC,Y
+.LA6E6 LDA ABSWS+&0274,Y
+       STA ABSWS+&08CC,Y
        DEY
        BPL LA6E6
        LDY #&02
-.LA6F1 LDA &C270,Y
-       STA &C8D6,Y
+.LA6F1 LDA ABSWS+&0270,Y
+       STA ABSWS+&08D6,Y
        DEY
        BPL LA6F1
        JMP L8F91
 ;;
 ;; Check loaded directory
 ;; ----------------------
-.LA6FD LDX &C317        ;; Get current drive
+.LA6FD LDX ABSWS+&0317  ;; Get current drive
        INX              ;; If &FF, no directory loaded
        BNE LA72E        ;; Directory loaded, exit
        JSR L8372        ;; Generate error
@@ -5864,10 +5864,10 @@ ENDIF
 ;;
 .LA714 JSR LA6FD        ;; Check if directory loaded
        LDX #&00         ;; Point to first character to check
-       LDA &C8FA        ;; Get initial character
-.LA71C CMP &C400,X      ;; Check "Hugo" string at start of dir
+       LDA ABSWS+&08FA  ;; Get initial character
+.LA71C CMP ABSWS+&0400,X ;; Check "Hugo" string at start of dir
        BNE LA72F        ;; Jump to give broken dir error
-       CMP &C8FA,X      ;; Check "Hugo" string at end of dir
+       CMP ABSWS+&08FA,X ;; Check "Hugo" string at end of dir
        BNE LA72F        ;; Jump to give broken dir error
        INX              ;; Move to next char
        LDA L84DC,X      ;; Get byte from "Hugo" string
@@ -5915,7 +5915,7 @@ ENDIF
        CMP (&BA),Y      ;; Does it match?
        BEQ LA766        ;; Exit if it does
 .LA76E LDA #&0F
-       STA &C2CE
+       STA ABSWS+&02CE
        JSR L8372        ;; Generate error
        EQUB &AA         ;; ERR=170
        EQUS "Bad sum"
@@ -5925,12 +5925,12 @@ ENDIF
        PHA
        PHY
        PHX
-       LDA &C2CE        ;; Get workspace checksum
+       LDA ABSWS+&02CE        ;; Get workspace checksum
        BNE LA76E        ;; If nonzero, generate 'Bad sum' error
        JSR L8FF3        ;; Check FSM checksum
        CLC
        LDX #&10
-.LA78E LDA &C204,X
+.LA78E LDA ABSWS+&0204,X
        AND #&21
        BEQ LA79B
        BCS LA76E
@@ -5943,7 +5943,7 @@ ENDIF
        BPL LA78E
        BCC LA76E
        JSR LA7C9
-       CMP &C2C1
+       CMP ABSWS+&02C1
        BNE LA76E
        PHA              ;; Create two spaces on stack
        PHA
@@ -5967,7 +5967,7 @@ ENDIF
 .LA7C9 LDX #&78
        TXA
        CLC
-.LA7CD ADC &C383,X
+.LA7CD ADC ABSWS+&0383,X
        DEX
        BNE LA7CD
        RTS
@@ -5977,35 +5977,35 @@ ENDIF
        PHY
        PHX
        JSR LA7C9
-       STA &C2C1
-       STZ &C2CE
-       STZ &C2D5
-       STZ &C2D9
+       STA ABSWS+&02C1
+       STZ ABSWS+&02CE
+       STZ ABSWS+&02D5
+       STZ ABSWS+&02D9
        PLX
        PLY
        PLA
        PLP
        RTS
 ;;
-.LA7EC LDA &C291
+.LA7EC LDA ABSWS+&0291
        STA &B4
-       LDA &C292
+       LDA ABSWS+&0292
        STA &B5
-       LDA &C294
+       LDA ABSWS+&0294
        STA &B7
-       LDA &C293
+       LDA ABSWS+&0293
        STA &B6
        LDX #&0B
 .LA802 LDA L883B,X
-       STA &C214,X
+       STA ABSWS+&0214,X
        DEX
        BNE LA802
        LDY #&03
-.LA80D LDA &C26C,Y
-       STA &C314,Y
+.LA80D LDA ABSWS+&026C,Y
+       STA ABSWS+&0314,Y
        CPX #&00
        BEQ LA81A
-       STA &C21A,X
+       STA ABSWS+&021A,X
 .LA81A INX
        DEY
        BPL LA80D
@@ -6013,15 +6013,15 @@ ENDIF
 ;;
 .LA821 LDX #&0B
 .LA823 LDA L883B,X
-       STA &C214,X
+       STA ABSWS+&0214,X
        DEX
        BNE LA823
        LDY #&03
-.LA82E LDA &C270,Y
-       STA &C314,Y
+.LA82E LDA ABSWS+&0270,Y
+       STA ABSWS+&0314,Y
        CPX #&00
        BEQ LA83B
-       STA &C21A,X
+       STA ABSWS+&021A,X
 .LA83B INX
        DEY
        BPL LA82E
@@ -6030,35 +6030,35 @@ ENDIF
        LDY #>L8831
        JMP L82AE
 ;;
-.LA849 LDA #&7F
+.LA849 LDA #<(ABSWS+&027F)
        STA &B8
-       LDA #&C2
+       LDA #>(ABSWS+&027F)
        STA &B9
-       LDA #&74
+       LDA #<(ABSWS+&0274)
        STA &C27F
-       LDA #&C2
-       STA &C280
+       LDA #>(ABSWS+&0274)
+       STA ABSWS+&0280
        JSR L8BBE
        BEQ LA863
        JMP L8BD3
 ;;
 .LA863 LDA &B6
-       STA &C293
+       STA ABSWS+&0293
        LDA &B7
-       STA &C294
+       STA ABSWS+&0294
        LDA &B4
-       STA &C291
+       STA ABSWS+&0291
        LDA &B5
-       STA &C292
+       STA ABSWS+&0292
        LDY #&03
-.LA879 LDA &C314,Y
-       STA &C26C,Y
+.LA879 LDA ABSWS+&0314,Y
+       STA ABSWS+&026C,Y
        DEY
        BPL LA879
        JSR L89D8
        LDY #&03
-.LA887 LDA &C314,Y
-       STA &C22C,Y
+.LA887 LDA ABSWS+&0314,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL LA887
        JSR LA394
@@ -6069,8 +6069,8 @@ ENDIF
 .LA89B JSR L9486
        JSR L8FF3
        LDY #&03
-.LA8A3 LDA &C314,Y
-       STA &C270,Y
+.LA8A3 LDA ABSWS+&0314,Y
+       STA ABSWS+&0270,Y
        DEY
        BPL LA8A3
        JSR LA7EC
@@ -6088,78 +6088,78 @@ ENDIF
        JMP L89D8
 ;;
 .LA8C7 LDA &B6
-       STA &C293
+       STA ABSWS+&0293
        LDA &B7
-       STA &C294
+       STA ABSWS+&0294
        JSR L8C6D
        LDY #&16
        LDA (&B6),Y
-       STA &C2A2
+       STA ABSWS+&02A2
        INY
        LDA (&B6),Y
-       STA &C2A3
+       STA ABSWS+&02A3
        INY
        LDA (&B6),Y
-       ORA &C317
-       STA &C2A4
+       ORA ABSWS+&0317
+       STA ABSWS+&02A4
        LDX #&00
        LDY #&03
-.LA8EE LDA &C289,Y
-       STA &C28D,Y
+.LA8EE LDA ABSWS+&0289,Y
+       STA ABSWS+&028D,Y
        TXA
-       STA &C289,Y
+       STA ABSWS+&0289,Y
        DEY
        BPL LA8EE
        LDY #&09
 .LA8FD LDA (&B6),Y
        AND #&7F
-       STA &C274,Y
+       STA ABSWS+&0274,Y
        DEY
        BPL LA8FD
        LDA #&0D
-       STA &C27E
+       STA ABSWS+&027E
        JSR LA821
        JSR L8DFE
        JSR L8E7A
        JSR L8F5D
        LDY #&02
-.LA91A LDA &C23A,Y
-       STA &C2A8,Y
-       LDA &C23D,Y
-       STA &C2A5,Y
+.LA91A LDA ABSWS+&023A,Y
+       STA ABSWS+&02A8,Y
+       LDA ABSWS+&023D,Y
+       STA ABSWS+&02A5,Y
        DEY
        BPL LA91A
        LDA #&83
        JSR &FFF4
-       STY &C260
+       STY ABSWS+&0260
        LDA #&84
        JSR &FFF4
        TYA
        SEC
-       SBC &C260
-       STA &C261
+       SBC ABSWS+&0260
+       STA ABSWS+&0261
        LDA #&08
        TSB &CD
-       LDA &C26F
-       ORA &C2A4
-       STA &C2A4
-       LDA &C273
-       ORA &C2AA
-       STA &C2AA
-       LDA &C317
+       LDA ABSWS+&026F
+       ORA ABSWS+&02A4
+       STA ABSWS+&02A4
+       LDA ABSWS+&0273
+       ORA ABSWS+&02AA
+       STA ABSWS+&02AA
+       LDA ABSWS+&0317
        PHA
        LDA #&00
-       STA &C317
+       STA ABSWS+&0317
        JSR L96AC
        PLA
-       STA &C317
+       STA ABSWS+&0317
        JSR L8F91
        JSR LA7EC
        JMP LA8B8
 ;;
 ;; FSC 6 - New FS taking over
 ;; ==========================
-.LA96D LDX &C317
+.LA96D LDX ABSWS+&0317
        INX
        BEQ LA983
        JSR L89D8
@@ -6193,13 +6193,13 @@ ENDIF
 ;; --------------------------------------------------
 .LA992 LDX #&10
 .LA994 JSR LAB06        ;; Check things
-       STZ &C204,X
+       STZ ABSWS+&0204,X
        DEX
        DEX
        DEX
        DEX
        BPL LA994
-       INC &C204
+       INC ABSWS+&0204
        JSR L8328        ;; Wait for ensuring to complete
        BRA LA98C        ;; Exit
 ;;
@@ -6218,13 +6218,13 @@ ENDIF
 ;; OSARGS 0,Y - Read PTR
 ;; ---------------------
        LDX &C3          ;; Get pointer to data word
-       LDA &C37A,Y      ;; Copy PTR to data word
+       LDA ABSWS+&037A,Y ;; Copy PTR to data word
        STA &00,X
-       LDA &C370,Y
+       LDA ABSWS+&0370,Y
        STA &01,X
-       LDA &C366,Y
+       LDA ABSWS+&0366,Y
        STA &02,X
-       LDA &C35C,Y
+       LDA ABSWS+&035C,Y
        STA &03,X
 .LA9D0 JSR LB19C
        LDA #&00         ;; A=0 - action done
@@ -6236,50 +6236,50 @@ ENDIF
 ;; ----------------------
 .LA9DA DEX
        BNE LAA59        ;; Jump if not 1, not PTR=
-       LDA &C3AC,Y
+       LDA ABSWS+&03AC,Y
        BPL LAA16
 .LA9E2 LDX &C3
        LDA &00,X
-       STA &C29A
+       STA ABSWS+&029A
        LDA &01,X
-       STA &C29B
+       STA ABSWS+&029B
        LDA &02,X
-       STA &C29C
+       STA ABSWS+&029C
        LDA &03,X
-       STA &C29D
+       STA ABSWS+&029D
        JSR LAE68
        LDX &C3
        LDY &CF
        LDA &00,X
-       STA &C37A,Y
+       STA ABSWS+&037A,Y
        LDA &01,X
-       STA &C370,Y
+       STA ABSWS+&0370,Y
        LDA &02,X
-       STA &C366,Y
+       STA ABSWS+&0366,Y
        LDA &03,X
-       STA &C35C,Y
+       STA ABSWS+&035C,Y
        JMP LA9D0
 ;;
 .LAA16 LDX &C3
        LDY &CF
        SEC
-       LDA &C352,Y
+       LDA ABSWS+&0352,Y
        SBC &00,X
-       LDA &C348,Y
+       LDA ABSWS+&0348,Y
        SBC &01,X
-       LDA &C33E,Y
+       LDA ABSWS+&033E,Y
        SBC &02,X
-       LDA &C334,Y
+       LDA ABSWS+&0334,Y
        SBC &03,X
        BCC LAA48
        LDA &00,X
-       STA &C37A,Y
+       STA ABSWS+&037A,Y
        LDA &01,X
-       STA &C370,Y
+       STA ABSWS+&0370,Y
        LDA &02,X
-       STA &C366,Y
+       STA ABSWS+&0366,Y
        LDA &03,X
-       STA &C35C,Y
+       STA ABSWS+&035C,Y
        JMP LA9D0
 ;;
 .LAA48 JSR L836B
@@ -6292,13 +6292,13 @@ ENDIF
 .LAA59 DEX
        BNE LAA75
        LDX &C3
-       LDA &C352,Y
+       LDA ABSWS+&0352,Y
        STA &00,X
-       LDA &C348,Y
+       LDA ABSWS+&0348,Y
        STA &01,X
-       LDA &C33E,Y
+       LDA ABSWS+&033E,Y
        STA &02,X
-       LDA &C334,Y
+       LDA ABSWS+&0334,Y
        STA &03,X
 .LAA72 JMP LA9D0
 ;;
@@ -6307,29 +6307,29 @@ ENDIF
 .LAA75 DEX
        BNE LAAB9
        LDX &C3
-       LDA &C3AC,Y
+       LDA ABSWS+&03AC,Y
        BMI LAA82
        JMP LB0FA
 ;;
 .LAA82 LDA &00,X
-       STA &C29A
+       STA ABSWS+&029A
        LDA &01,X
-       STA &C29B
+       STA ABSWS+&029B
        LDA &02,X
-       STA &C29C
+       STA ABSWS+&029C
        LDA &03,X
-       STA &C29D
+       STA ABSWS+&029D
        JSR LAE68
        LDX &C3
        LDY &CF
        LDA &00,X
-       STA &C352,Y
+       STA ABSWS+&0352,Y
        LDA &01,X
-       STA &C348,Y
+       STA ABSWS+&0348,Y
        LDA &02,X
-       STA &C33E,Y
+       STA ABSWS+&033E,Y
        LDA &03,X
-       STA &C334,Y
+       STA ABSWS+&0334,Y
        JSR LAD25
        BCS LAA72
        JMP LA9E2
@@ -6337,15 +6337,15 @@ ENDIF
 ;; OSARGS 4+,Y - treat as OSARGS &FF,Y - Ensure File
 ;; -------------------------------------------------
 .LAAB9 LDX #&10
-.LAABB LDA &C204,X
+.LAABB LDA ABSWS+&0204,X
        LSR A
        AND #&0F
        CMP &CF
        BNE LAAD0
        JSR LAB06
-       LDA &C204,X
+       LDA ABSWS+&0204,X
        AND #&01
-       STA &C204,X
+       STA ABSWS+&0204,X
 .LAAD0 DEX
        DEX
        DEX
@@ -6369,14 +6369,14 @@ ELIF PATCH_IDE
        LDA #1           ;; one sector
        STA &FC42
        CLC
-       LDA &C201,X      ;; Set sector b0-b5
+       LDA ABSWS+&0201,X      ;; Set sector b0-b5
        AND #63
        ADC #1
        STA &FC43
-       LDA &C202,X      ;; Set sector b8-b15
+       LDA ABSWS+&0202,X      ;; Set sector b8-b15
        STA &FC44
-       LDA &C203,X      ;; Set sector b16-b21
-       STA &C333
+       LDA ABSWS+&0203,X      ;; Set sector b16-b21
+       STA ABSWS+&0333
        JMP SetRandom
        EQUB &00         ;; Junk - so a binary compare will pass
        JMP L831E        ;; Junk - so a binary compare will pass
@@ -6386,12 +6386,12 @@ ELSE
        JSR L8080        ;; Set SCSI to command mode
        PLA
        JSR L831E        ;; Send command
-       LDA &C203,X
-       STA &C333
+       LDA ABSWS+&0203,X
+       STA ABSWS+&0333
        JSR L831E        ;; Send sector address
-       LDA &C202,X
+       LDA ABSWS+&0202,X
        JSR L831E
-       LDA &C201,X
+       LDA ABSWS+&0201,X
        JSR L831E
        LDA #&01         ;; Send '1 sector'
        JSR L831E
@@ -6401,29 +6401,29 @@ ENDIF
 ;;
 .LAB03 JSR LACE6        ;; Check checksum
 .LAB06 JSR LABB4        ;; Check for data lost
-       LDA &C204,X
+       LDA ABSWS+&0204,X
        CMP #&C0
        BCC LAB88
        TXA
        LSR A
        LSR A
-       ADC #&C9
+       ADC #>(ABSWS+&0900)
        STA &BD
        LDA #&00
        STA &BC
-       LDA &C204,X
+       LDA ABSWS+&0204,X
        AND #&BF
-       STA &C204,X
+       STA ABSWS+&0204,X
        AND #&1E
        ROR A
        ORA #&30
-       STA &C2D4
-       LDA &C201,X
-       STA &C2D0
-       LDA &C202,X
-       STA &C2D1
-       LDA &C203,X
-       STA &C2D2
+       STA ABSWS+&02D4
+       LDA ABSWS+&0201,X
+       STA ABSWS+&02D0
+       LDA ABSWS+&0202,X
+       STA ABSWS+&02D1
+       LDA ABSWS+&0203,X
+       STA ABSWS+&02D2
        JSR LB56C        ;; ?
        JSR L8099        ;; Set default retries
        STX &C1
@@ -6431,7 +6431,7 @@ IF INCLUDE_FLOPPY
        LDA &CD          ;; Get hard drive presence
        AND #&20
        BEQ LAB50        ;; No hard drive, jump forward to do floppy
-       LDA &C203,X      ;; Get drive
+       LDA ABSWS+&0203,X ;; Get drive
        BPL LAB5E        ;; Hard drive, jump ahead
 .LAB50 LDX &C1
        JSR LBA51
@@ -6513,9 +6513,9 @@ IF PATCH_IDE OR PATCH_SD
 ;;
 .UpdateDrive
        LDA &85          ;; Merge with current drive
-       ORA &C317
+       ORA ABSWS+&0317
        STA &85
-       STA &C333        ;; Store for any error
+       STA ABSWS+&0333  ;; Store for any error
        LDA #&7F
        RTS
        EQUB &03         ;; Junk - so a binary compare will pass
@@ -6541,24 +6541,24 @@ ENDIF
        LDA &FC40
        JSR L8332
        ORA &FC40
-       STA &C331
+       STA ABSWS+&0331
        JMP L9DB4        ;; Restore Y,X, claim call
 ;;
 ;;
 ;; Check for data loss
 ;; ===================
-.LABB4 LDA &C331
+.LABB4 LDA ABSWS+&0331
        BEQ LABE6        ;; Jump forward to exit
        LDA #&00
-       STA &C331        ;; Clear the flag
-       LDX &C2D4
+       STA ABSWS+&0331        ;; Clear the flag
+       LDX ABSWS+&02D4
        JSR L8374        ;; Generate 'Data lost' error
        EQUB &CA         ;; ERR=202
        EQUS "Data lost, channel"
        EQUB &00
 ;;
 .LABD8 TXA
-       STX &C2A1
+       STX ABSWS+&02A1
        LSR A
        LSR A
        ADC #&C9
@@ -6569,42 +6569,42 @@ ENDIF
 ;;
 ;;
 .LABE7 LDX #&10
-       STX &C295
+       STX ABSWS+&0295
        TAY
-.LABED LDA &C204,X
+.LABED LDA ABSWS+&0204,X
        AND #&01
        BEQ LABF7
-       STX &C295
-.LABF7 LDA &C204,X
+       STX ABSWS+&0295
+.LABF7 LDA ABSWS+&0204,X
        BPL LAC71
-       LDA &C201,X
-       CMP &C296
+       LDA ABSWS+&0201,X
+       CMP ABSWS+&0296
        BNE LAC71
-       LDA &C202,X
-       CMP &C297
+       LDA ABSWS+&0202,X
+       CMP ABSWS+&0297
        BNE LAC71
-       LDA &C203,X
-       CMP &C298
+       LDA ABSWS+&0203,X
+       CMP ABSWS+&0298
        BNE LAC71
        JSR LABD8
 .LAC17 TYA
        LSR A
        AND #&40
-       ORA &C204,X
+       ORA ABSWS+&0204,X
        ROR A
        AND #&E0
        ORA &CF
        PHP
        CLC
        ROL A
-       STA &C204,X
+       STA ABSWS+&0204,X
        PLP
        BCC LAC4A
        LDY #&10
-.LAC2E LDA &C204,Y
+.LAC2E LDA ABSWS+&0204,Y
        BNE LAC3A
        LDA #&01
-       STA &C204,Y
+       STA ABSWS+&0204,Y
        BNE LAC6E
 .LAC3A DEY
        DEY
@@ -6612,9 +6612,9 @@ ENDIF
        DEY
        BPL LAC2E
        JSR LAD04
-       ROR &C204,X
+       ROR ABSWS+&0204,X
        SEC
-       ROL &C204,X
+       ROL ABSWS+&0204,X
 .LAC4A INX
        INX
        INX
@@ -6622,18 +6622,18 @@ ENDIF
        CPX #&11
        BCC LAC54
        LDX #&00
-.LAC54 LDA &C204,X
+.LAC54 LDA ABSWS+&0204,X
        LSR A
        BEQ LAC6E
        BCC LAC6E
        CLC
        ROL A
-       STA &C204,X
+       STA ABSWS+&0204,X
        JSR LAD04
        JSR LAD04
-       ROR &C204,X
+       ROR ABSWS+&0204,X
        SEC
-       ROL &C204,X
+       ROL ABSWS+&0204,X
 .LAC6E JMP LAB03
 ;;
 .LAC71 DEX
@@ -6643,18 +6643,18 @@ ENDIF
        BMI LAC7A
        JMP LABED
 ;;
-.LAC7A LDX &C295
-       LDA &C296
-       STA &C201,X
-       STA &C2D0
-       LDA &C297
-       STA &C202,X
-       STA &C2D1
-       LDA &C298
-       STA &C203,X
-       STA &C2D2
+.LAC7A LDX ABSWS+&0295
+       LDA ABSWS+&0296
+       STA ABSWS+&0201,X
+       STA ABSWS+&02D0
+       LDA ABSWS+&0297
+       STA ABSWS+&0202,X
+       STA ABSWS+&02D1
+       LDA ABSWS+&0298
+       STA ABSWS+&0203,X
+       STA ABSWS+&02D2
        JSR LABD8
-       LDA &C298
+       LDA ABSWS+&0298
        JSR LB56C
        STY &B1
        STX &B0
@@ -6665,7 +6665,7 @@ IF INCLUDE_FLOPPY
        AND #&20
        BEQ LACB5
 ENDIF
-       LDA &C203,X
+       LDA ABSWS+&0203,X
        BPL LACC1
 IF INCLUDE_FLOPPY
 .LACB5 JSR LBA54
@@ -6715,11 +6715,11 @@ ENDIF
 .LACDA LDX &B0          ;; Restore X & Y
        LDY &B1
        LDA #&81
-       STA &C204,X
+       STA ABSWS+&0204,X
        JMP LAC17
 ;;
 .LACE6 LDX #&10
-.LACE8 LDA &C204,X
+.LACE8 LDA ABSWS+&0204,X
        AND #&01
        BNE LAD24
        DEX
@@ -6745,7 +6745,7 @@ ENDIF
 ;; Check channel and get channel flags
 ;; -----------------------------------
 .LAD0D STY &C2          ;; Save channel
-       STY &C2D5
+       STY ABSWS+&02D5
        CPY #&3A         ;; Check channel is in range
        BCS LACF8        ;; Too high - error
        TYA
@@ -6754,7 +6754,7 @@ ENDIF
        BCC LACF8        ;; Too low - error
        STA &CF          ;; Store channel offset
        TAX
-       LDA &C3AC,X      ;; Get channel flags
+       LDA ABSWS+&03AC,X      ;; Get channel flags
        BEQ LACF8        ;; Channel not open - error
 .LAD24 RTS
 ;;
@@ -6771,17 +6771,17 @@ ENDIF
 ;; Compare something
 ;; -----------------
 .LAD25 LDX &CF          ;; Get channel offset
-       LDA &C334,X
-       CMP &C35C,X      ;; Compare something
+       LDA ABSWS+&0334,X
+       CMP ABSWS+&035C,X      ;; Compare something
        BNE LAD48        ;; Different, so end with NE+CC/CS
-       LDA &C33E,X
-       CMP &C366,X      ;; Compare something
+       LDA ABSWS+&033E,X
+       CMP ABSWS+&0366,X      ;; Compare something
        BNE LAD48        ;; Different, so end with NE+CC/CS
-       LDA &C348,X
-       CMP &C370,X      ;; Compare something
+       LDA ABSWS+&0348,X
+       CMP ABSWS+&0370,X      ;; Compare something
        BNE LAD48        ;; Different, so end with NE+CC/CS
-       LDA &C352,X
-       CMP &C37A,X      ;; Compare something
+       LDA ABSWS+&0352,X
+       CMP ABSWS+&037A,X      ;; Compare something
        BNE LAD48        ;; Different, so end with NE+CC/CS
        CLC              ;; All same, set EQ+CC
 .LAD48 RTS
@@ -6801,9 +6801,9 @@ ENDIF
 .LAD5F LDY &B5
        RTS
 ;;
-.LAD62 LDA &C3AC,X
+.LAD62 LDA ABSWS+&03AC,X
        AND #&C8
-       STA &C3AC,X
+       STA ABSWS+&03AC,X
        JSR L836B        ;; Generate an error
        EQUB &DF         ;; ERR=150
        EQUS "EOF"
@@ -6822,10 +6822,10 @@ ENDIF
        BNE LAD62        ;; Not same, so generate 'EOF' error
        JSR LA77F        ;; Check various checksums
        LDX &CF          ;; Get offset to channel
-       LDA &C3AC,X      ;; Get channel flag
+       LDA ABSWS+&03AC,X      ;; Get channel flag
        AND #&C0
        ORA #&08         ;; Set EOF flag
-       STA &C3AC,X
+       STA ABSWS+&03AC,X
        LDY &C2          ;; Restore Y
        LDX &C3          ;; Restore X
        SEC              ;; Flag EOF
@@ -6836,21 +6836,21 @@ ENDIF
 ;; ----------------------
 .LAD9C LDX &CF          ;; Get channel offset
        CLC
-       LDA &C3CA,X
-       ADC &C370,X
-       STA &C296
-       LDA &C3C0,X
-       ADC &C366,X
-       STA &C297
-       LDA &C3B6,X
-       ADC &C35C,X
-       STA &C298        ;; &C296/7/8=&C3CA/B/C,X+&C370/1/2,X
+       LDA ABSWS+&03CA,X
+       ADC ABSWS+&0370,X
+       STA ABSWS+&0296
+       LDA ABSWS+&03C0,X
+       ADC ABSWS+&0366,X
+       STA ABSWS+&0297
+       LDA ABSWS+&03B6,X
+       ADC ABSWS+&035C,X
+       STA ABSWS+&0298        ;; &C296/7/8=&C3CA/B/C,X+&C370/1/2,X
        LDA #&40
        JSR LABE7        ;; Manipulate various things
        LDX &CF
-       LDY &C37A,X
+       LDY ABSWS+&037A,X
        LDA #&00
-       STA &C2CF
+       STA ABSWS+&02CF
        JSR LB180
        LDA (&BE),Y      ;; Get byte from buffer
        LDY &C2          ;; Restore Y
@@ -6859,57 +6859,57 @@ ENDIF
        RTS              ;; Return
 ;;
 .LADD4 LDY #&02
-.LADD6 LDA &C314,Y
-       STA &C230,Y
+.LADD6 LDA ABSWS+&0314,Y
+       STA ABSWS+&0230,Y
        DEY
        BPL LADD6
-       LDA &C317
-       STA &C233
+       LDA ABSWS+&0317
+       STA ABSWS+&0233
        LDX &CF
-       LDA &C3B6,X
+       LDA ABSWS+&03B6,X
        AND #&E0
-       STA &C22F
-       LDA &C3E8,X
-       STA &C22C
-       LDA &C3DE,X
-       STA &C22D
-       LDA &C3D4,X
-       STA &C22E
+       STA ABSWS+&022F
+       LDA ABSWS+&03E8,X
+       STA ABSWS+&022C
+       LDA ABSWS+&03DE,X
+       STA ABSWS+&022D
+       LDA ABSWS+&03D4,X
+       STA ABSWS+&022E
        JSR L89D8
        LDY #&02
-.LAE06 LDA &C230,Y
-       STA &C22C,Y
+.LAE06 LDA ABSWS+&0230,Y
+       STA ABSWS+&022C,Y
        DEY
        BPL LAE06
-       LDA &C233
-       STA &C22F
+       LDA ABSWS+&0233
+       STA ABSWS+&022F
        JSR LB4DF
        LDX &CF
-       LDA &C3CA,X
-       STA &C234
-       LDA &C3C0,X
-       STA &C235
-       LDA &C3B6,X
+       LDA ABSWS+&03CA,X
+       STA ABSWS+&0234
+       LDA ABSWS+&03C0,X
+       STA ABSWS+&0235
+       LDA ABSWS+&03B6,X
        AND #&1F
-       STA &C236
-       LDA #&05
+       STA ABSWS+&0236
+       LDA #<(ABSWS+&0405)
        STA &B8
-       LDA #&C4
+       LDA #>(ABSWS+&0405)
        STA &B9
        LDX &CF
 .LAE38 LDY #&00
        LDA (&B8),Y
        BNE LAE44
-       STA &C3AC,X
+       STA ABSWS+&03AC,X
        JMP LA76E
 ;;
 .LAE44 LDY #&19
        LDA (&B8),Y
-       CMP &C3F2,X
+       CMP ABSWS+&03F2,X
        BNE LAE5B
        DEY
 .LAE4E LDA (&B8),Y
-       CMP &C21E,Y
+       CMP ABSWS+&021E,Y
        BNE LAE5B
        DEY
        CPY #&16
@@ -6924,41 +6924,41 @@ ENDIF
        INC &B9
        BCS LAE38
 .LAE68 LDA #&00
-       STA &C2B5
-.LAE6D LDA &C22F
-       STA &C2BF
+       STA ABSWS+&02B5
+.LAE6D LDA ABSWS+&022F
+       STA ABSWS+&02BF
        LDX #&02
-.LAE75 LDA &C22C,X
-       STA &C2BC,X
+.LAE75 LDA ABSWS+&022C,X
+       STA ABSWS+&02BC,X
        DEX
        BPL LAE75
        LDA #&FF
-       STA &C22E
-       STA &C22F
+       STA ABSWS+&022E
+       STA ABSWS+&022F
        LDX &CF
-       LDA &C384,X
-       CMP &C29D
+       LDA ABSWS+&0384,X
+       CMP ABSWS+&029D
        BNE LAEA6
-       LDA &C38E,X
-       CMP &C29C
+       LDA ABSWS+&038E,X
+       CMP ABSWS+&029C
        BNE LAEA6
-       LDA &C398,X
-       CMP &C29B
+       LDA ABSWS+&0398,X
+       CMP ABSWS+&029B
        BNE LAEA6
-       LDA &C3A2,X
-       CMP &C29A
+       LDA ABSWS+&03A2,X
+       CMP ABSWS+&029A
 .LAEA6 BCC LAED0
-       LDA &C334,X
-       CMP &C29D
+       LDA ABSWS+&0334,X
+       CMP ABSWS+&029D
        BNE LAECB
-       LDA &C33E,X
-       CMP &C29C
+       LDA ABSWS+&033E,X
+       CMP ABSWS+&029C
        BNE LAECB
-       LDA &C348,X
-       CMP &C29B
+       LDA ABSWS+&0348,X
+       CMP ABSWS+&029B
        BNE LAECB
-       LDA &C352,X
-       CMP &C29A
+       LDA ABSWS+&0352,X
+       CMP ABSWS+&029A
        BNE LAECB
 .LAEC8 JMP LB0DA
 ;;
@@ -6966,36 +6966,36 @@ ENDIF
        JMP LAFE4
 ;;
 .LAED0 JSR LADD4
-       LDA &C3A2,X
+       LDA ABSWS+&03A2,X
        CMP #&01
-       LDA &C398,X
+       LDA ABSWS+&0398,X
        ADC #&00
-       STA &C237
-       LDA &C38E,X
+       STA ABSWS+&0237
+       LDA ABSWS+&038E,X
        ADC #&00
-       STA &C238
-       LDA &C384,X
+       STA ABSWS+&0238
+       LDA ABSWS+&0384,X
        ADC #&00
-       STA &C239
+       STA ABSWS+&0239
        JSR L84E1
-       STZ &C23D
-       STZ &C23E
-       STZ &C23F
-       LDX &C1FE
-.LAEFF LDA &C23F
-       CMP &C0FF,X
+       STZ ABSWS+&023D
+       STZ ABSWS+&023E
+       STZ ABSWS+&023F
+       LDX ABSWS+&01FE
+.LAEFF LDA ABSWS+&023F
+       CMP ABSWS+&00FF,X
        BCC LAF1B
        BNE LAF2A
-       LDA &C23E
-       CMP &C0FE,X
+       LDA ABSWS+&023E
+       CMP ABSWS+&00FE,X
        BCC LAF1B
        BNE LAF2A
-       LDA &C23D
-       CMP &C0FD,X
+       LDA ABSWS+&023D
+       CMP ABSWS+&00FD,X
        BCS LAF2A
 .LAF1B LDY #&02
-.LAF1D LDA &C0FF,X
-       STA &C23D,Y
+.LAF1D LDA ABSWS+&00FF,X
+       STA ABSWS+&023D,Y
        DEX
        DEY
        BPL LAF1D
@@ -7007,14 +7007,14 @@ ENDIF
        DEX
 .LAF2D BNE LAEFF
        LDX #&03
-.LAF31 LDA &C23C,X
-       CMP &C29A,X
+.LAF31 LDA ABSWS+&023C,X
+       CMP ABSWS+&029A,X
        BNE LAF3F
        DEX
        BNE LAF31
-       CPX &C29A
-.LAF3F LDA &C29C
-       LDY &C29D
+       CPX ABSWS+&029A
+.LAF3F LDA ABSWS+&029C
+       LDY ABSWS+&029D
        INC A
        BNE LAF4E
        INY
@@ -7022,128 +7022,128 @@ ENDIF
        JMP L867F
 ;;
 .LAF4E BCC LAF5E
-       CPY &C23F
+       CPY ABSWS+&023F
        BCC LAF5E
        BNE LAF67
-       CMP &C23E
+       CMP ABSWS+&023E
        BCC LAF5E
        BNE LAF67
-.LAF5E STY &C23F
-       STA &C23E
-       STZ &C23D
+.LAF5E STY ABSWS+&023F
+       STA ABSWS+&023E
+       STZ ABSWS+&023D
 .LAF67 JSR L865B
        LDY #&12
        LDA #&00
        LDX &CF
        STA (&B8),Y
-       STA &C3A2,X
+       STA ABSWS+&03A2,X
        INY
-       LDA &C23D
+       LDA ABSWS+&023D
        STA (&B8),Y
-       STA &C398,X
-       LDA &C23E
-       INY
-       STA (&B8),Y
-       STA &C38E,X
-       LDA &C23F
+       STA ABSWS+&0398,X
+       LDA ABSWS+&023E
        INY
        STA (&B8),Y
-       STA &C384,X
-       LDA &C23A
+       STA ABSWS+&038E,X
+       LDA ABSWS+&023F
        INY
        STA (&B8),Y
-       STA &C3CA,X
-       LDA &C23B
+       STA ABSWS+&0384,X
+       LDA ABSWS+&023A
        INY
        STA (&B8),Y
-       STA &C3C0,X
-       LDA &C23C
+       STA ABSWS+&03CA,X
+       LDA ABSWS+&023B
        INY
        STA (&B8),Y
-       ORA &C317
-       STA &C3B6,X
+       STA ABSWS+&03C0,X
+       LDA ABSWS+&023C
+       INY
+       STA (&B8),Y
+       ORA ABSWS+&0317
+       STA ABSWS+&03B6,X
        JSR L8F91
        LDA #&08
        TRB &CD
        LDA #&C4
-       STA &C260
+       STA ABSWS+&0260
        LDA #&09
-       STA &C261
+       STA ABSWS+&0261
        LDX #&00
        LDY #&02
-.LAFC3 LDA &C234,Y
-       STA &C2A2,Y
-       CMP &C23A,Y
+.LAFC3 LDA ABSWS+&0234,Y
+       STA ABSWS+&02A2,Y
+       CMP ABSWS+&023A,Y
        BEQ LAFD2
        INX
-       LDA &C23A,Y
-.LAFD2 STA &C2A8,Y
-       LDA &C237,Y
-       STA &C2A5,Y
+       LDA ABSWS+&023A,Y
+.LAFD2 STA ABSWS+&02A8,Y
+       LDA ABSWS+&0237,Y
+       STA ABSWS+&02A5,Y
        DEY
        BPL LAFC3
        TXA
        BEQ LAFE4
        JSR L96AC
-.LAFE4 LDA &C2B5
+.LAFE4 LDA ABSWS+&02B5
        BEQ LAFEC
        JMP LB0BD
 ;;
 .LAFEC LDX &CF
        CLC
-       LDA &C348,X
-       ADC &C3CA,X
-       STA &C296
-       LDA &C33E,X
-       ADC &C3C0,X
-       STA &C297
-       LDA &C334,X
-       ADC &C3B6,X
-       STA &C298
+       LDA ABSWS+&0348,X
+       ADC ABSWS+&03CA,X
+       STA ABSWS+&0296
+       LDA ABSWS+&033E,X
+       ADC ABSWS+&03C0,X
+       STA ABSWS+&0297
+       LDA ABSWS+&0334,X
+       ADC ABSWS+&03B6,X
+       STA ABSWS+&0298
        LDA #&C0
        JSR LABE7
        LDX &CF
-       LDY &C352,X
+       LDY ABSWS+&0352,X
        LDA #&00
 .LB016 STA (&BE),Y
        INY
        BNE LB016
-       LDA &C29B
+       LDA ABSWS+&029B
        CLC
-       ADC &C3CA,X
-       STA &C234
-       LDA &C29C
-       ADC &C3C0,X
-       STA &C235
-       LDA &C29D
-       ADC &C3B6,X
-       STA &C236
-       LDA &C29A
+       ADC ABSWS+&03CA,X
+       STA ABSWS+&0234
+       LDA ABSWS+&029C
+       ADC ABSWS+&03C0,X
+       STA ABSWS+&0235
+       LDA ABSWS+&029D
+       ADC ABSWS+&03B6,X
+       STA ABSWS+&0236
+       LDA ABSWS+&029A
        BNE LB04F
-       LDA &C234
+       LDA ABSWS+&0234
        BNE LB04C
-       LDA &C235
+       LDA ABSWS+&0235
        BNE LB049
-       DEC &C236
-.LB049 DEC &C235
-.LB04C DEC &C234
-.LB04F LDA &C234
-       CMP &C296
+       DEC ABSWS+&0236
+.LB049 DEC ABSWS+&0235
+.LB04C DEC ABSWS+&0234
+.LB04F LDA ABSWS+&0234
+       CMP ABSWS+&0296
        BNE LB06A
-       LDA &C235
-       CMP &C297
+       LDA ABSWS+&0235
+       CMP ABSWS+&0297
        BNE LB06A
-       LDA &C236
-       CMP &C298
+       LDA ABSWS+&0236
+       CMP ABSWS+&0298
        BNE LB06A
        JMP LB0BD
 ;;
 .LB06A JSR L8328
-       INC &C296
+       INC ABSWS+&0296
        BNE LB07A
-       INC &C297
+       INC ABSWS+&0297
        BNE LB07A
-       INC &C298
+       INC ABSWS+&0298
 .LB07A LDA #&40
        JSR LABE7
        LDY #&00
@@ -7151,42 +7151,42 @@ ENDIF
 .LB082 STA (&BE),Y
        INY
        BNE LB082
-.LB087 LDX &C2A1
+.LB087 LDX ABSWS+&02A1
        LDA #&C0
-       ORA &C204,X
-       STA &C204,X
+       ORA ABSWS+&0204,X
+       STA ABSWS+&0204,X
        JSR LAB06
-       LDA &C234
-       CMP &C201,X
+       LDA ABSWS+&0234
+       CMP ABSWS+&0201,X
        BNE LB0AD
-       LDA &C235
-       CMP &C202,X
+       LDA ABSWS+&0235
+       CMP ABSWS+&0202,X
        BNE LB0AD
-       LDA &C236
-       CMP &C203,X
+       LDA ABSWS+&0236
+       CMP ABSWS+&0203,X
        BEQ LB0BD
-.LB0AD INC &C201,X
+.LB0AD INC ABSWS+&0201,X
        BNE LB087
-       INC &C202,X
+       INC ABSWS+&0202,X
        BNE LB087
-       INC &C203,X
+       INC ABSWS+&0203,X
        JMP LB087
 ;;
 .LB0BD LDX &CF
-       LDA &C29A
-       STA &C352,X
-       LDA &C29B
-       STA &C348,X
-       LDA &C29C
-       STA &C33E,X
-       LDA &C29D
-       STA &C334,X
+       LDA ABSWS+&029A
+       STA ABSWS+&0352,X
+       LDA ABSWS+&029B
+       STA ABSWS+&0348,X
+       LDA ABSWS+&029C
+       STA ABSWS+&033E,X
+       LDA ABSWS+&029D
+       STA ABSWS+&0334,X
        JSR L89D8
-.LB0DA LDA &C2BF
-       STA &C22F
+.LB0DA LDA ABSWS+&02BF
+       STA ABSWS+&022F
        LDX #&02
-.LB0E2 LDA &C2BC,X
-       STA &C22C,X
+.LB0E2 LDA ABSWS+&02BC,X
+       STA ABSWS+&022C,X
        DEX
        BPL LB0E2
        RTS
@@ -7197,7 +7197,7 @@ ENDIF
        PHA              ;; Save output byte
        JSR LAD0D        ;; Check channel and get flags
        LDY #&00
-       STY &C2CF
+       STY ABSWS+&02CF
        TAY
        BMI LB112
 .LB0FA JSR L836B
@@ -7205,41 +7205,41 @@ ENDIF
        EQUS "Not open for update"
        EQUB &00
 ;;
-.LB112 LDA &C3AC,X
+.LB112 LDA ABSWS+&03AC,X
        AND #&07
        CMP #&06
        BCS LB14D
        CMP #&03
        BEQ LB14D
-       LDA &C37A,X
+       LDA ABSWS+&037A,X
        SEC
        ADC #&00
-       STA &C29A
-       LDA &C370,X
+       STA ABSWS+&029A
+       LDA ABSWS+&0370,X
        ADC #&00
-       STA &C29B
-       LDA &C366,X
+       STA ABSWS+&029B
+       LDA ABSWS+&0366,X
        ADC #&00
-       STA &C29C
-       LDA &C35C,X
+       STA ABSWS+&029C
+       LDA ABSWS+&035C,X
        ADC #&00
-       STA &C29D
+       STA ABSWS+&029D
        PLA
        JSR LA77F
        PHA
-       DEC &C2CF
+       DEC ABSWS+&02CF
        JSR LAE68
        LDX &CF
 .LB14D CLC
-       LDA &C3CA,X
-       ADC &C370,X
-       STA &C296
-       LDA &C3C0,X
-       ADC &C366,X
-       STA &C297
-       LDA &C3B6,X
-       ADC &C35C,X
-       STA &C298
+       LDA ABSWS+&03CA,X
+       ADC ABSWS+&0370,X
+       STA ABSWS+&0296
+       LDA ABSWS+&03C0,X
+       ADC ABSWS+&0366,X
+       STA ABSWS+&0297
+       LDA ABSWS+&03B6,X
+       ADC ABSWS+&035C,X
+       STA ABSWS+&0298
        LDA #&C0
        JSR LABE7
        LDX &CF
@@ -7254,39 +7254,39 @@ ENDIF
 .LB17F RTS
 ;;
 .LB180 LDX &CF
-       INC &C37A,X
+       INC ABSWS+&037A,X
        BNE LB17F
-       BIT &C2CF
+       BIT ABSWS+&02CF
        BMI LB18F
        JSR LA77F
-.LB18F INC &C370,X
+.LB18F INC ABSWS+&0370,X
        BNE LB19C
-       INC &C366,X
+       INC ABSWS+&0366,X
        BNE LB19C
-       INC &C35C,X
+       INC ABSWS+&035C,X
 .LB19C JSR LB1E9
        PHA
        SEC
-       LDA &C370,X
-       SBC &C348,X
-       LDA &C366,X
-       SBC &C33E,X
-       LDA &C35C,X
-       SBC &C334,X
+       LDA ABSWS+&0370,X
+       SBC ABSWS+&0348,X
+       LDA ABSWS+&0366,X
+       SBC ABSWS+&033E,X
+       LDA ABSWS+&035C,X
+       SBC ABSWS+&0334,X
        BCC LB1DE
-       LDA &C37A,X
-       CMP &C352,X
+       LDA ABSWS+&037A,X
+       CMP ABSWS+&0352,X
        BNE LB1C1
        PLA
        ORA #&04
        PHA
 .LB1C1 SEC
-       LDA &C348,X
-       SBC &C398,X
-       LDA &C33E,X
-       SBC &C38E,X
-       LDA &C334,X
-       SBC &C384,X
+       LDA ABSWS+&0348,X
+       SBC ABSWS+&0398,X
+       LDA ABSWS+&033E,X
+       SBC ABSWS+&038E,X
+       LDA ABSWS+&0334,X
+       SBC ABSWS+&0384,X
        BCC LB1D9
        PLA
        BNE LB1E1
@@ -7297,22 +7297,22 @@ ENDIF
        ORA #&03
 .LB1E1 BMI LB1E5
        AND #&F9
-.LB1E5 STA &C3AC,X
+.LB1E5 STA ABSWS+&03AC,X
        RTS
 ;;
 .LB1E9 LDX &CF          ;; Get channel offset
-       LDA &C3AC,X
+       LDA ABSWS+&03AC,X
        PHA
        AND #&04
        BEQ LB20B
-       LDA &C37A,X
-       STA &C352,X
-       LDA &C370,X
-       STA &C348,X
-       LDA &C366,X
-       STA &C33E,X
-       LDA &C35C,X
-       STA &C334,X
+       LDA ABSWS+&037A,X
+       STA ABSWS+&0352,X
+       LDA ABSWS+&0370,X
+       STA ABSWS+&0348,X
+       LDA ABSWS+&0366,X
+       STA ABSWS+&033E,X
+       LDA ABSWS+&035C,X
+       STA ABSWS+&0334,X
 .LB20B PLA
        AND #&C0
        BNE LB1E5
@@ -7323,32 +7323,32 @@ ENDIF
 ;; OSFIND - Open a file or close a channel
 ;; =======================================
 .LB213 JSR LA77F        ;; Check checksums
-       STX &C240
+       STX ABSWS+&0240
        STX &B4
        STX &C5          ;; Store X -> filename
        STY &C4
-       STY &C241
+       STY ABSWS+&0241
        STY &B5          ;; Store Y -> filename
        AND #&C0         ;; Open or close?
        LDY #&00
-       STY &C2D5
+       STY ABSWS+&02D5
        TAY              ;; Zero A and Y
        BNE LB231        ;; Jump ahead for open
        JMP LB3E0        ;; Jump to close
 ;;
 ;; OPEN
 ;; ----
-.LB231 LDA &C332        ;; Handle stored from *RUN?
+.LB231 LDA ABSWS+&0332  ;; Handle stored from *RUN?
        BEQ LB23E        ;; No, do a real OPEN
        LDY #&00
-       STY &C332        ;; Clear stored handle
+       STY ABSWS+&0332  ;; Clear stored handle
        LDY &B5          ;; Restore Y
        RTS              ;; Return handle from *RUN
 ;;
 ;; Open a file
 ;; -----------
 .LB23E LDX #&09         ;; Look for a spare channel
-.LB240 LDA &C3AC,X      ;; Check channel flags
+.LB240 LDA ABSWS+&03AC,X      ;; Check channel flags
        BEQ LB260        ;; Found a spare channel
        DEX              ;; Loop to next channel
        BPL LB240        ;; Keep going until run out of channels
@@ -7360,7 +7360,7 @@ ENDIF
 ;; Found a spare channel
 ;; ---------------------
 .LB260 STX &CF          ;; Store channel offset
-       STY &C2A0
+       STY ABSWS+&02A0
        TYA
        BPL LB26B
        JMP LB33E
@@ -7371,24 +7371,24 @@ ENDIF
        JMP LB336
 ;;
 .LB275 LDX #&09
-.LB277 LDA &C3AC,X
+.LB277 LDA ABSWS+&03AC,X
        BPL LB2AA
-       LDA &C3B6,X
+       LDA ABSWS+&03B6,X
        AND #&E0
-       CMP &C317
+       CMP ABSWS+&0317
        BNE LB2AA
-       LDA &C3E8,X
-       CMP &C314
+       LDA ABSWS+&03E8,X
+       CMP ABSWS+&0314
        BNE LB2AA
-       LDA &C3DE,X
-       CMP &C315
+       LDA ABSWS+&03DE,X
+       CMP ABSWS+&0315
        BNE LB2AA
-       LDA &C3D4,X
-       CMP &C316
+       LDA ABSWS+&03D4,X
+       CMP ABSWS+&0316
        BNE LB2AA
        LDY #&19
        LDA (&B6),Y
-       CMP &C3F2,X
+       CMP ABSWS+&03F2,X
        BNE LB2AA
        JMP L8D5E
 ;;
@@ -7402,55 +7402,55 @@ ENDIF
 .LB2B6 LDY #&12
        LDX &CF
        LDA (&B6),Y
-       STA &C352,X
+       STA ABSWS+&0352,X
        INY
        LDA (&B6),Y
-       STA &C348,X
+       STA ABSWS+&0348,X
        INY
        LDA (&B6),Y
-       STA &C33E,X
+       STA ABSWS+&033E,X
        INY
        LDA (&B6),Y
-       STA &C334,X
+       STA ABSWS+&0334,X
 .LB2D1 LDY #&12
        LDX &CF
        LDA (&B6),Y
-       STA &C3A2,X
+       STA ABSWS+&03A2,X
        INY
        LDA (&B6),Y
-       STA &C398,X
+       STA ABSWS+&0398,X
        INY
        LDA (&B6),Y
-       STA &C38E,X
+       STA ABSWS+&038E,X
        INY
        LDA (&B6),Y
-       STA &C384,X
+       STA ABSWS+&0384,X
        INY
        LDA (&B6),Y
-       STA &C3CA,X
+       STA ABSWS+&03CA,X
        INY
        LDA (&B6),Y
-       STA &C3C0,X
+       STA ABSWS+&03C0,X
        INY
        LDA (&B6),Y
-       ORA &C317
-       STA &C3B6,X
+       ORA ABSWS+&0317
+       STA ABSWS+&03B6,X
        INY
        LDA (&B6),Y
-       STA &C3F2,X
-       LDA &C314
-       STA &C3E8,X
-       LDA &C315
-       STA &C3DE,X
-       LDA &C316
-       STA &C3D4,X
+       STA ABSWS+&03F2,X
+       LDA ABSWS+&0314
+       STA ABSWS+&03E8,X
+       LDA ABSWS+&0315
+       STA ABSWS+&03DE,X
+       LDA ABSWS+&0316
+       STA ABSWS+&03D4,X
        LDA #&00
-       STA &C37A,X
-       STA &C370,X
-       STA &C366,X
-       STA &C35C,X
-       LDA &C2A0
-       STA &C3AC,X
+       STA ABSWS+&037A,X
+       STA ABSWS+&0370,X
+       STA ABSWS+&0366,X
+       STA ABSWS+&035C,X
+       LDA ABSWS+&02A0
+       STA ABSWS+&03AC,X
        TXA
        CLC
        ADC #&30
@@ -7462,7 +7462,7 @@ ENDIF
        LDY &C4
        RTS
 ;;
-.LB33E BIT &C2A0
+.LB33E BIT ABSWS+&02A0
        BVC LB35B
        JSR L8FE8
        PHP
@@ -7488,50 +7488,50 @@ ENDIF
 ;;
 .LB36F LDA #&00
        LDX #&0F
-.LB373 STA &C242,X
+.LB373 STA ABSWS+&0242,X
        DEX
        BPL LB373
-       LDX &C1FE
+       LDX ABSWS+&01FE
        LDA #&00
-.LB37E ORA &C0FE,X
-       ORA &C0FF,X
-       LDY &C0FD,X
-       CPY &C24F
+.LB37E ORA ABSWS+&00FE,X
+       ORA ABSWS+&00FF,X
+       LDY ABSWS+&00FD,X
+       CPY ABSWS+&024F
        BCC LB38F
-       STY &C24F
+       STY ABSWS+&024F
 .LB38F DEX
        DEX
        DEX
        BNE LB37E
        TAY
        BEQ LB39E
-       STX &C24F
+       STX ABSWS+&024F
        INX
-       STX &C250
+       STX ABSWS+&0250
 .LB39E LDA #&FF
-       STA &C246
-       STA &C247
-       STA &C248
-       STA &C249
-       LDX #&40
+       STA ABSWS+&0246
+       STA ABSWS+&0247
+       STA ABSWS+&0248
+       STA ABSWS+&0249
+       LDX #<(ABSWS+&0240)
        STX &B8
-       LDY #&C2
+       LDY #>(ABSWS+&0240)
        STY &B9
        JSR L89D8
        JSR L8F57
        JSR L8F91
        JSR L89D5
-       LDA &C240
+       LDA ABSWS+&0240
        STA &B4
-       LDA &C241
+       LDA ABSWS+&0241
        STA &B5
        JSR L8FE8
 .LB3CD LDA #&00
        LDX &CF
-       STA &C352,X
-       STA &C348,X
-       STA &C33E,X
-       STA &C334,X
+       STA ABSWS+&0352,X
+       STA ABSWS+&0348,X
+       STA ABSWS+&033E,X
+       STA ABSWS+&0334,X
        JMP LB2D1
 ;;
 ;; CLOSE a channel
@@ -7539,7 +7539,7 @@ ENDIF
 .LB3E0 LDY &C4          ;; Get handle
        BNE LB406        ;; Nonzero, close just this channel
        LDX #&09         ;; Loop for all channels
-.LB3E6 LDA &C3AC,X      ;; Get channel flag
+.LB3E6 LDA ABSWS+&03AC,X      ;; Get channel flag
        BNE LB3F7        ;; Jump to close this channel
 .LB3EB DEX              ;; Loop for all channels
        BPL LB3E6
@@ -7564,21 +7564,21 @@ ENDIF
 ;; -----------------------------
 .LB406 JSR LAD0D        ;; Check channel and get flags
 .LB409 JSR LB1E9        ;; Check something and set flags
-       LDY &C3AC,X      ;; Get flags
-       STZ &C3AC,X      ;; Clear flags
+       LDY ABSWS+&03AC,X      ;; Get flags
+       STZ ABSWS+&03AC,X      ;; Clear flags
        TYA              ;; Pass flags to A
        BPL LB435        ;; Jump ahead if b7=0
-       LDA &C352,X
-       CMP &C3A2,X
+       LDA ABSWS+&0352,X
+       CMP ABSWS+&03A2,X
        BNE LB442
-       LDA &C348,X
-       CMP &C398,X
+       LDA ABSWS+&0348,X
+       CMP ABSWS+&0398,X
        BNE LB442
-       LDA &C33E,X
-       CMP &C38E,X
+       LDA ABSWS+&033E,X
+       CMP ABSWS+&038E,X
        BNE LB442
-       LDA &C334,X
-       CMP &C384,X
+       LDA ABSWS+&0334,X
+       CMP ABSWS+&0384,X
        BNE LB442        ;; Jump ahead with difference
 .LB435 JSR LAAB9        ;; Write buffer?
        JSR L89D8        ;; Do something with FSM
@@ -7590,45 +7590,45 @@ ENDIF
 ;; Update directory entry?
 ;; -----------------------
 .LB442 JSR LADD4
-       LDA &C352,X
+       LDA ABSWS+&0352,X
        CMP #&01
-       LDA &C234
-       ADC &C348,X
-       STA &C234
-       LDA &C235
-       ADC &C33E,X
-       STA &C235
-       LDA &C236
-       ADC &C334,X
-       STA &C236
-       LDA &C3A2,X
+       LDA ABSWS+&0234
+       ADC ABSWS+&0348,X
+       STA ABSWS+&0234
+       LDA ABSWS+&0235
+       ADC ABSWS+&033E,X
+       STA ABSWS+&0235
+       LDA ABSWS+&0236
+       ADC ABSWS+&0334,X
+       STA ABSWS+&0236
+       LDA ABSWS+&03A2,X
        CMP #&01
-       LDA &C398,X
-       SBC &C348,X
-       STA &C237
-       LDA &C38E,X
-       SBC &C33E,X
-       STA &C238
-       LDA &C384,X
-       SBC &C334,X
-       STA &C239
-       LDA &C352,X
+       LDA ABSWS+&0398,X
+       SBC ABSWS+&0348,X
+       STA ABSWS+&0237
+       LDA ABSWS+&038E,X
+       SBC ABSWS+&033E,X
+       STA ABSWS+&0238
+       LDA ABSWS+&0384,X
+       SBC ABSWS+&0334,X
+       STA ABSWS+&0239
+       LDA ABSWS+&0352,X
        BNE LB497
-       INC &C237
+       INC ABSWS+&0237
        BNE LB497
-       INC &C238
+       INC ABSWS+&0238
        BNE LB497
-       INC &C239
-.LB497 LDA &C352,X
+       INC ABSWS+&0239
+.LB497 LDA ABSWS+&0352,X
        LDY #&12
        STA (&B8),Y
-       LDA &C348,X
+       LDA ABSWS+&0348,X
        INY
        STA (&B8),Y
-       LDA &C33E,X
+       LDA ABSWS+&033E,X
        INY
        STA (&B8),Y
-       LDA &C334,X
+       LDA ABSWS+&0334,X
        INY
        STA (&B8),Y
        JSR L84E1        ;; Calculate something in FSM
@@ -7636,32 +7636,32 @@ ENDIF
        JMP LB435        ;; Jump back to write buffer?
 ;;
 .LB4B9 LDX #&09
-.LB4BB LDA &C3AC,X
+.LB4BB LDA ABSWS+&03AC,X
        BEQ LB4CA
-       LDA &C3B6,X
+       LDA ABSWS+&03B6,X
        AND #&E0
-       CMP &C317
+       CMP ABSWS+&0317
        BEQ LB4DF
 .LB4CA DEX
        BPL LB4BB
 ;;
-.LB4CD LDA &C317
+.LB4CD LDA ABSWS+&0317
        JSR LB5C5
-       LDA &C1FB
-       STA &C321,X
-       LDA &C1FC
-       STA &C322,X
+       LDA ABSWS+&01FB
+       STA ABSWS+&0321,X
+       LDA ABSWS+&01FC
+       STA ABSWS+&0322,X
 .LB4DF JSR LB510
-.LB4E2 LDA &C317
+.LB4E2 LDA ABSWS+&0317
        JSR LB5C5
-       LDA &C1FB
-       CMP &C321,X
+       LDA ABSWS+&01FB
+       CMP ABSWS+&0321,X
        BNE LB4FF
-       LDA &C1FC
-       CMP &C322,X
+       LDA ABSWS+&01FC
+       CMP ABSWS+&0322,X
        BNE LB4FF
        JSR LB560
-       STA &C2C2
+       STA ABSWS+&02C2
        RTS
 ;;
 .LB4FF JSR L836B
@@ -7670,36 +7670,36 @@ ENDIF
        EQUB &00
 ;;
 .LB510 LDA #&01
-       LDX #&C8
-       LDY #&C2
+       LDX #<(ABSWS+&02C8)
+       LDY #>(ABSWS+&02C8)
        JSR &FFF1
        LDX #&00
        LDY #&04
        SEC
-.LB51E LDA &C2C8,X
+.LB51E LDA ABSWS+&02C8,X
        PHA
-       SBC &C2C3,X
-       STA &C2C8,X
+       SBC ABSWS+&02C3,X
+       STA ABSWS+&02C8,X
        PLA
-       STA &C2C3,X
+       STA ABSWS+&02C3,X
        INX
        DEY
        BPL LB51E
-       LDA &C2CC
-       ORA &C2CB
-       ORA &C2CA
+       LDA ABSWS+&02CC
+       ORA ABSWS+&02CB
+       ORA ABSWS+&02CA
        BNE LB542
-       LDA &C2C9
+       LDA ABSWS+&02C9
        CMP #&02
        BCC LB545
-.LB542 STY &C2C2
+.LB542 STY ABSWS+&02C2
 .LB545 RTS
 ;;
 .LB546 JSR LB510
-       LDA &C317
+       LDA ABSWS+&0317
        JSR LB5C5
        JSR LB560
-       EOR &C2C2
+       EOR ABSWS+&02C2
        BEQ LB545
        LDX #<L8831
        LDY #>L8831
@@ -7712,40 +7712,40 @@ ENDIF
        DEX
        DEX
        BPL LB563
-       AND &C2C2
+       AND ABSWS+&02C2
        RTS
 ;;
 .LB56C AND #&E0
-       STA &C2CD
+       STA ABSWS+&02CD
        PHX
        PHY
        JSR LB510
-       LDA &C2CD
+       LDA ABSWS+&02CD
        JSR LB5C5
        JSR LB560
-       EOR &C2C2
+       EOR ABSWS+&02C2
        BEQ LB5C2
-       LDA &C2CD
+       LDA ABSWS+&02CD
        TAX
        PHA
-       LDA &C317
-       STA &C2CD
-       LDY &C22F
+       LDA ABSWS+&0317
+       STA ABSWS+&02CD
+       LDY ABSWS+&022F
        CPY #&FF
        BNE LB59C
-       STA &C22F
-       STY &C2CD
-.LB59C STX &C317
+       STA ABSWS+&022F
+       STY ABSWS+&02CD
+.LB59C STX ABSWS+&0317
        JSR LB546
-       LDY &C2CD
-       STY &C317
+       LDY ABSWS+&02CD
+       STY ABSWS+&0317
        CPY #&FF
        BNE LB5B5
-       LDA &C22F
-       STA &C317
-       STY &C22F
+       LDA ABSWS+&022F
+       STA ABSWS+&0317
+       STY ABSWS+&022F
 .LB5B5 PLA
-       CMP &C317
+       CMP ABSWS+&0317
        BEQ LB5C2
        LDX #<L8831
        LDY #>L8831
@@ -7762,18 +7762,18 @@ ENDIF
        RTS
 ;;
 .LB5CB JSR LA77F
-       STA &C2B4
-       STA &C2B5
+       STA ABSWS+&02B4
+       STA ABSWS+&02B5
        STY &C7
        STX &C6
        LDY #&01
        LDX #&03
 .LB5DC LDA (&C6),Y
-       STA &C2B7,Y
+       STA ABSWS+&02B7,Y
        INY
        DEX
        BPL LB5DC
-       LDA &C2B4
+       LDA ABSWS+&02B4
        CMP #&05
        BCC LB5F0
        JMP LB8DA
@@ -7789,16 +7789,16 @@ ENDIF
        PHP
        JSR LB1E9
        LDX &CF
-       LDA &C3B6,X
+       LDA ABSWS+&03B6,X
        JSR LB56C
        PLP
        BMI LB614
-       LDA &C2B4
+       LDA ABSWS+&02B4
        CMP #&03
        BCS LB614
        JMP LB0FA
 ;;
-.LB614 LDA &C2B4
+.LB614 LDA ABSWS+&02B4
        AND #&01
        BEQ LB629
        LDY #&0C
@@ -7817,39 +7817,39 @@ ENDIF
        LDY #&05
 .LB635 LDA (&C6),Y
        ADC &00C3,Y
-       STA &C295,Y
+       STA ABSWS+&0295,Y
        INY
        DEX
        BPL LB635
-       LDA &C2B4
-       STA &C2B5
+       LDA ABSWS+&02B4
+       STA ABSWS+&02B5
        CMP #&03
        BCS LB64E
        JSR LAE6D
 .LB64E LDY #&09
        LDX &CF
-       LDA &C29A
-       STA &C37A,X
+       LDA ABSWS+&029A
+       STA ABSWS+&037A,X
        STA (&C6),Y
        INY
-       LDA &C29B
-       STA &C370,X
+       LDA ABSWS+&029B
+       STA ABSWS+&0370,X
        STA (&C6),Y
        INY
-       LDA &C29C
-       STA &C366,X
+       LDA ABSWS+&029C
+       STA ABSWS+&0366,X
        STA (&C6),Y
        INY
-       LDA &C29D
-       STA &C35C,X
+       LDA ABSWS+&029D
+       STA ABSWS+&035C,X
        STA (&C6),Y
-       LDA &C2B4
+       LDA ABSWS+&02B4
        CMP #&03
        BCS LB690
 .LB67C LDX #&03
        LDY #&05
 .LB680 LDA (&C6),Y
-       STA &C23B,Y
+       STA ABSWS+&023B,Y
        LDA #&00
        STA (&C6),Y
        INY
@@ -7860,54 +7860,54 @@ ENDIF
 .LB690 JSR LAD25
        BCS LB67C
        BEQ LB67C
-       STZ &C2B5
+       STZ ABSWS+&02B5
        LDX &CF
        SEC
-       LDA &C352,X
+       LDA ABSWS+&0352,X
        SBC &C8
-       STA &C240
-       LDA &C348,X
+       STA ABSWS+&0240
+       LDA ABSWS+&0348,X
        SBC &C9
-       STA &C241
-       LDA &C33E,X
+       STA ABSWS+&0241
+       LDA ABSWS+&033E,X
        SBC &CA
-       STA &C242
-       LDA &C334,X
+       STA ABSWS+&0242
+       LDA ABSWS+&0334,X
        SBC &CB
-       STA &C243
+       STA ABSWS+&0243
        LDX #&03
        LDY #&05
        SEC
 .LB6C2 LDA (&C6),Y
-       SBC &C23B,Y
+       SBC ABSWS+&023B,Y
        STA (&C6),Y
        INY
        DEX
        BPL LB6C2
        LDX &CF
-       LDA &C352,X
-       STA &C29A
-       STA &C37A,X
+       LDA ABSWS+&0352,X
+       STA ABSWS+&029A
+       STA ABSWS+&037A,X
        STA (&C6),Y
        INY
-       LDA &C348,X
-       STA &C29B
-       STA &C370,X
+       LDA ABSWS+&0348,X
+       STA ABSWS+&029B
+       STA ABSWS+&0370,X
        STA (&C6),Y
        INY
-       LDA &C33E,X
-       STA &C29C
-       STA &C366,X
+       LDA ABSWS+&033E,X
+       STA ABSWS+&029C
+       STA ABSWS+&0366,X
        STA (&C6),Y
        INY
-       LDA &C334,X
-       STA &C29D
-       STA &C35C,X
+       LDA ABSWS+&0334,X
+       STA ABSWS+&029D
+       STA ABSWS+&035C,X
        STA (&C6),Y
 .LB6FE LDY #&01
        LDX #&03
        CLC
-.LB703 LDA &C23F,Y
+.LB703 LDA ABSWS+&023F,Y
        ADC (&C6),Y
        STA (&C6),Y
        INY
@@ -7919,36 +7919,36 @@ ENDIF
 ;;
 .LB715 LDX &CF
        CLC
-       LDA &C3CA,X
+       LDA ABSWS+&03CA,X
        ADC &C9
-       STA &C296
-       LDA &C3C0,X
+       STA ABSWS+&0296
+       LDA ABSWS+&03C0,X
        ADC &CA
-       STA &C297
-       LDA &C3B6,X
+       STA ABSWS+&0297
+       LDA ABSWS+&03B6,X
        ADC &CB
-       STA &C298
+       STA ABSWS+&0298
        LDA #&02
-       CMP &C2B4
+       CMP ABSWS+&02B4
        LDA #&80
        ROR A
        JSR LABE7
        LDA &C8
-       STA &C2B6
-       STZ &C2B7
+       STA ABSWS+&02B6
+       STZ ABSWS+&02B7
        LDX #&02
-.LB745 LDA &C29B,X
+.LB745 LDA ABSWS+&029B,X
        CMP &C9,X
        BNE LB768
        DEX
        BPL LB745
-       LDA &C29A
-       STA &C2B7
+       LDA ABSWS+&029A
+       STA ABSWS+&02B7
        JSR LB9CA
 .LB758 JSR L89D8
        JSR LB19C
 .LB75E LDA #&00
-       CMP &C2B5
+       CMP ABSWS+&02B5
        LDX &C6
        LDY &C7
        RTS
@@ -7956,120 +7956,120 @@ ENDIF
 .LB768 JSR LB9CA
        LDA #&00
        SEC
-       SBC &C2B6
-       STA &C2B6
+       SBC ABSWS+&02B6
+       STA ABSWS+&02B6
        CLC
-       ADC &C2B8
-       STA &C2B8
+       ADC ABSWS+&02B8
+       STA ABSWS+&02B8
        BCC LB78A
-       INC &C2B9
+       INC ABSWS+&02B9
        BNE LB78A
-       INC &C2BA
+       INC ABSWS+&02BA
        BNE LB78A
-       INC &C2BB
+       INC ABSWS+&02BB
 .LB78A SEC
-       LDA &C240
-       SBC &C2B6
-       STA &C240
+       LDA ABSWS+&0240
+       SBC ABSWS+&02B6
+       STA ABSWS+&0240
        BCS LB7A5
        LDY #&01
-.LB798 LDA &C240,Y
+.LB798 LDA ABSWS+&0240,Y
        SBC #&00
-       STA &C240,Y
+       STA ABSWS+&0240,Y
        BCS LB7A5
        INY
        BNE LB798
-.LB7A5 LDA &C241
-       ORA &C242
-       ORA &C243
+.LB7A5 LDA ABSWS+&0241
+       ORA ABSWS+&0242
+       ORA ABSWS+&0243
        BNE LB7B3
        JMP LB82B
 ;;
 .LB7B3 LDA #&01
-       STA &C215
+       STA ABSWS+&0215
        LDY #&03
-.LB7BA LDA &C2B8,Y
-       STA &C216,Y
+.LB7BA LDA ABSWS+&02B8,Y
+       STA ABSWS+&0216,Y
        DEY
        BPL LB7BA
        LDA #&02
-       CMP &C2B4
+       CMP ABSWS+&02B4
        LDA #&02
        ROL A
        ROL A
-       STA &C21A
+       STA ABSWS+&021A
        LDX &CF
        LDA &C8
        CMP #&01
        LDA &C3CA,X
        ADC &C9
-       STA &C21D
-       LDA &C3C0,X
+       STA ABSWS+&021D
+       LDA ABSWS+&03C0,X
        ADC &CA
-       STA &C21C
-       LDA &C3B6,X
+       STA ABSWS+&021C
+       LDA ABSWS+&03B6,X
        ADC &CB
-       STA &C21B
+       STA ABSWS+&021B
        LDY #&04
-.LB7EF LDA &C313,Y
-       STA &C22B,Y
+.LB7EF LDA ABSWS+&0313,Y
+       STA ABSWS+&022B,Y
        DEY
        BNE LB7EF
-       STY &C317
-       STY &C21E
-       STY &C21F
-       STY &C220
+       STY ABSWS+&0317
+       STY ABSWS+&021E
+       STY ABSWS+&021F
+       STY ABSWS+&0220
        CLC
        LDX #&02
-.LB807 LDA &C241,Y
-       STA &C221,Y
-       ADC &C2B9,Y
-       STA &C2B9,Y
+.LB807 LDA ABSWS+&0241,Y
+       STA ABSWS+&0221,Y
+       ADC ABSWS+&02B9,Y
+       STA ABSWS+&02B9,Y
        INY
        DEX
        BPL LB807
        JSR LAAB9
        JSR L8A42
-       LDA &C22F
-       STA &C317
+       LDA ABSWS+&022F
+       STA ABSWS+&0317
        LDA #&FF
-       STA &C22F
-       STA &C22E
-.LB82B LDA &C29A
+       STA ABSWS+&022F
+       STA ABSWS+&022E
+.LB82B LDA ABSWS+&029A
        BNE LB833
        JMP LB758
 ;;
 .LB833 LDX &CF
        CLC
-       LDA &C3CA,X
-       ADC &C29B
-       STA &C296
-       LDA &C3C0,X
-       ADC &C29C
-       STA &C297
-       LDA &C3B6,X
-       ADC &C29D
-       STA &C298
+       LDA ABSWS+&03CA,X
+       ADC ABSWS+&029B
+       STA ABSWS+&0296
+       LDA ABSWS+&03C0,X
+       ADC ABSWS+&029C
+       STA ABSWS+&0297
+       LDA ABSWS+&03B6,X
+       ADC ABSWS+&029D
+       STA ABSWS+&0298
        LDA #&02
-       CMP &C2B4
+       CMP ABSWS+&02B4
        LDA #&80
        ROR A
        JSR LABE7
-       STZ &C2B6
-       LDA &C29A
-       STA &C2B7
+       STZ ABSWS+&02B6
+       LDA ABSWS+&029A
+       STA ABSWS+&02B7
        JSR LB9CA
        JMP LB758
 ;;
 .LB86B BIT &CD
        BPL LB898
-       LDA &C2BA
-       LDX &C2BB
+       LDA ABSWS+&02BA
+       LDX ABSWS+&02BB
        JSR L8053
-       LDA &C2BA
+       LDA ABSWS+&02BA
        CMP #&FE
        BCC LB885
-       LDA &C2BB
+       LDA ABSWS+&02BB
        INC A
        BEQ LB898
 .LB885 PHP
@@ -8083,9 +8083,9 @@ ENDIF
        JSR &0406
        PLP
 .LB898 STZ &BD
-       LDA &C2B8
+       LDA ABSWS+&02B8
        STA &B2
-       LDA &C2B9
+       LDA ABSWS+&02B9
        STA &B3
        RTS
 ;;
@@ -8134,7 +8134,7 @@ ENDIF
 .LB8EB JSR LB86B
        LDY #&FF
 .LB8F0 INY
-       LDA &C8D9,Y
+       LDA ABSWS+&08D9,Y
        AND #&7F
        CMP #&20
        BCC LB8FE
@@ -8144,16 +8144,16 @@ ENDIF
        JSR LB8A5
        LDY #&FF
 .LB904 INY
-       LDA &C8D9,Y
+       LDA ABSWS+&08D9,Y
        AND #&7F
        CMP #&20
        BCC LB915
        JSR LB8A5
        CPY #&13
        BNE LB904
-.LB915 LDA &C1FD
+.LB915 LDA ABSWS+&01FD
        JSR LB8A5
-       LDA &C317
+       LDA ABSWS+&0317
        ASL A
        ROL A
        ROL A
@@ -8165,11 +8165,11 @@ ENDIF
 .LB92B JSR LB86B
        LDA #&01
        JSR LB8A5
-       LDA &C317
+       LDA ABSWS+&0317
        JSR LB946
-       LDA #&00
+       LDA #<(ABSWS+&0300)
        STA &B4
-       LDA #&C3
+       LDA #>(ABSWS+&0300)
        STA &B5
        JSR LB8BC
        BMI LB925
@@ -8183,18 +8183,18 @@ ENDIF
 .LB94F JSR LB86B
        LDA #&01
        JSR LB8A5
-       LDA &C31B
+       LDA ABSWS+&031B
        JSR LB946
-       LDA #&0A
+       LDA #<(ABSWS+&030A)
        STA &B4
-       LDA #&C3
+       LDA #>(ABSWS+&030A)
        STA &B5
        JSR LB8BC
        BMI LB925
 .LB96A JSR LB86B
        LDY #&00
-       STY &C2B5
-       LDA &C8FA
+       STY ABSWS+&02B5
+       LDA ABSWS+&08FA
        STA (&C6),Y
        LDY #&05
        LDA (&C6),Y
@@ -8220,7 +8220,7 @@ ENDIF
        STA &B4
 .LB99E LDY #&00
        LDA (&B4),Y
-       STA &C2B5
+       STA ABSWS+&02B5
        BEQ LB9BB
        JSR LB8BC
        LDA &B4
@@ -8240,42 +8240,42 @@ ENDIF
        STA (&C6),Y
        JMP LB925
 ;;
-.LB9CA LDA &C2B6
-       CMP &C2B7
+.LB9CA LDA ABSWS+&02B6
+       CMP ABSWS+&02B7
        BNE LB9D3
        RTS
 ;;
 .LB9D3 BIT &CD
        BPL LBA03
-       LDA &C2BA
-       LDX &C2BB
+       LDA ABSWS+&02BA
+       LDX ABSWS+&02BB
        JSR L8053
-       LDA &C2BA
+       LDA ABSWS+&02BA
        CMP #&FE
        BCC LB9ED
-       LDA &C2BB
+       LDA ABSWS+&02BB
        INC A
        BEQ LBA03
 .LB9ED LDA #&40
        TSB &CD
        JSR L8032
-       LDA &C2B4
+       LDA ABSWS+&02B4
        CMP #&03
        LDA #&00
        ROL A
-       LDX #&B8
-       LDY #&C2
+       LDX #<(ABSWS+&02B8)
+       LDY #>(ABSWS+&02B8)
        JSR &0406
-.LBA03 LDA &C2B8
+.LBA03 LDA ABSWS+&02B8
        SEC
-       SBC &C2B6
+       SBC ABSWS+&02B6
        STA &B2
-       LDA &C2B9
+       LDA ABSWS+&02B9
        SBC #&00
        STA &B3
-       LDA &C2B4
+       LDA ABSWS+&02B4
        CMP #&03
-       LDY &C2B6
+       LDY ABSWS+&02B6
        PHP
 .LBA1C PLP
        BIT &CD
@@ -8296,7 +8296,7 @@ ENDIF
        STA (&BE),Y
 .LBA40 INY
        PHP
-       CPY &C2B7
+       CPY ABSWS+&02B7
        BNE LBA1C
        PLP
        JMP L803A
@@ -8319,17 +8319,17 @@ IF INCLUDE_FLOPPY
 ;;
 ENDIF
 .LBA57 LDA #&FF
-       STA &C2E4
+       STA ABSWS+&02E4
        RTS
 IF INCLUDE_FLOPPY
 ;;
 .LBA5D LDA #&40
        BNE LBA63
 .LBA61 LDA #&C0
-.LBA63 STA &C2E0
+.LBA63 STA ABSWS+&02E0
        TXA
        TSX
-       STX &C2E7
+       STX ABSWS+&02E7
        PHA
        JSR LBBDE
        JSR LBBBE
@@ -8345,7 +8345,7 @@ IF INCLUDE_FLOPPY
        STA &0D0E
        LDA &BF
        STA &0D0F
-.LBA8D LDA &C203,X
+.LBA8D LDA ABSWS+&0203,X
        PHA
        AND #&1F
        BEQ LBA99
@@ -8364,10 +8364,10 @@ IF INCLUDE_FLOPPY
 .LBAA8 LDA #&06
 .LBAAA STA &0D5E
        LDA #&01
-       TSB &C2E4
-       LDA &C201,X
+       TSB ABSWS+&02E4
+       LDA ABSWS+&0201,X
        PHA
-       LDA &C202,X
+       LDA ABSWS+&0202,X
        TAX
        PLA
        LDY #&FF
@@ -8384,14 +8384,14 @@ IF INCLUDE_FLOPPY
        STA &FE24        ;; Drive control register
        ROR A
        BCC LBAE4
-       LDA &C2E5
+       LDA ABSWS+&02E5
        STA &A3
-       BIT &C2E4
+       BIT ABSWS+&02E4
        BPL LBAF1
        BMI LBAEE
-.LBAE4 LDA &C2E6
+.LBAE4 LDA ABSWS+&02E6
        STA &A3
-       BIT &C2E4
+       BIT ABSWS+&02E4
        BVC LBAF1
 .LBAEE JSR LBD55
 .LBAF1 JSR LBAFA
@@ -8408,7 +8408,7 @@ IF INCLUDE_FLOPPY
        CMP &A3
        BEQ LBB26
        LDA #&01
-       TSB &C2E4
+       TSB ABSWS+&02E4
        LDA #&14
        ORA &0D5C
        STA &FE28        ;; FDC Status/Command
@@ -8439,25 +8439,25 @@ IF INCLUDE_FLOPPY
 ;; Access Floppy Disk Controller
 ;; -----------------------------
 .LBB46 TSX
-       STX &C2E7        ;; Save stack pointer
+       STX ABSWS+&02E7  ;; Save stack pointer
        LDA #&10
-       STA &C2E0
+       STA ABSWS+&02E0
        JSR LBB72
        JSR LBDBA
        BEQ LBB23
-.LBB57 STA &C2E2
+.LBB57 STA ABSWS+&02E2
        TSX
-       STX &C2E7
-       LDA #&C2
+       STX ABSWS+&02E7
+       LDA #>(ABSWS+&0215)
        STA &B1
-       LDA #&15
+       LDA #<(ABSWS+&0215)
        STA &B0
-       STZ &C2E0
+       STZ ABSWS+&02E0
        JSR LBB72
        JSR LBD6E
        JMP LBFB7
 ;;
-.LBB72 STZ &C2E3
+.LBB72 STZ ABSWS+&02E3
        LDY #&01         ;; Point to address
        LDA (&B0),Y
        STA &B2
@@ -8487,13 +8487,13 @@ IF INCLUDE_FLOPPY
        CMP #&0B
        BEQ LBBB0        ;; Jump with Seek
        LDA #&67         ;; Floppy error &27 'Unsupported command'
-       STA &C2E3
+       STA ABSWS+&02E3
        JMP LBFB7        ;; Jump to return with result=&67
 ;;
 ;; Read from floppy
 ;; ----------------
 .LBBB0 LDA #&80
-       TSB &C2E0
+       TSB ABSWS+&02E0
 ;;
 ;; Write to floppy
 ;; ---------------
@@ -8502,13 +8502,13 @@ IF INCLUDE_FLOPPY
        JMP LBF0A
 ;;
 .LBBBE JSR LBC01
-       LDA &C2E8
+       LDA ABSWS+&02E8
        STA &0D5C
        STZ &A0          ;; Clear error
        STZ &A2
-       LDA &C2E0        ;; b7=0=floppy write, 1=floppy read
+       LDA ABSWS+&02E0        ;; b7=0=floppy write, 1=floppy read
        ORA #&20
-       STA &C2E0
+       STA ABSWS+&02E0
        STA &A1
        LDA &CD
        STA &0D5D
@@ -8516,7 +8516,7 @@ IF INCLUDE_FLOPPY
        RTS
 ;;
 .LBBDE STZ &0D56
-       STZ &C2E8
+       STZ ABSWS+&02E8
        LDX #&0B
        LDA #&A1
        JSR &FFF4
@@ -8525,7 +8525,7 @@ IF INCLUDE_FLOPPY
        AND #&02
        BEQ LBBF6
        LDA #&03
-       STA &C2E8
+       STA ABSWS+&02E8
 .LBBF6 PLA
        AND #&01
        BEQ LBC00
@@ -8539,12 +8539,12 @@ IF INCLUDE_FLOPPY
        LDX #&0C
        LDY #&FF
        JSR &FFF4        ;; Claim NMI space
-       STY &C2E1        ;; Store previous owner's ID
+       STY ABSWS+&02E1  ;; Store previous owner's ID
        RTS
 ;;
 ;; Release NMI space
 ;; -----------------
-.LBC0E LDY &C2E1        ;; Get previous owner's ID
+.LBC0E LDY ABSWS+&02E1  ;; Get previous owner's ID
        LDA #&8F
        LDX #&0B
        JMP &FFF4        ;; Release NMI
@@ -8583,8 +8583,8 @@ IF INCLUDE_FLOPPY
        ROL A
        LDA #&00
        ROL A
-       LDY #&C2
-       LDX #&27
+       LDY #>(ABSWS+&0227)
+       LDX #<(ABSWS+&0227)
        JSR &0406
        LDA &A1
        AND #&10
@@ -8726,27 +8726,27 @@ IF INCLUDE_FLOPPY
        STA &FE28        ;; FDC Status/Command
        JMP LBCE5
 ;;
-.LBD62 ROR &C2E4
+.LBD62 ROR ABSWS+&02E4
        BCC LBD6A
        ORA #&04
        CLC
-.LBD6A ROL &C2E4
+.LBD6A ROL ABSWS+&02E4
        RTS
 ;;
-.LBD6E LDA &C2E2
+.LBD6E LDA ABSWS+&02E2
        STA &0D0F
        STZ &0D0E
        JSR LBAFA
        JSR LBD1E
        LDA &A3
        PHA
-       LDA &C216
+       LDA ABSWS+&0216
        STA &A5
-       LDA &C217
+       LDA ABSWS+&0217
        STA &A6
        LDA #&00
        STA &A3
-       LDA &C2E2
+       LDA ABSWS+&02E2
        STA &A4
        BIT &CD
        BVC LBDAB
@@ -8757,10 +8757,10 @@ IF INCLUDE_FLOPPY
        BNE LBD9D
        STA &FEE5
        INY
-       CPY &C21E
+       CPY ABSWS+&021E
        BNE LBD99
        BEQ LBDB6
-.LBDAB LDY &C21E
+.LBDAB LDY ABSWS+&021E
 .LBDAE DEY
        LDA (&A3),Y
        STA (&A5),Y
@@ -8883,7 +8883,7 @@ IF INCLUDE_FLOPPY
 .LBEAA LDA &0D5A
        BNE LBEF2
        LDA #&01
-       TSB &C2E4
+       TSB ABSWS+&02E4
        LDA &FE29        ;; FDC Track register
        CMP #&4F
        BCC LBEDA        ;; Less than 80
@@ -8935,7 +8935,7 @@ IF INCLUDE_FLOPPY
 ;;
 .LBF0A LDY #&06
        LDA (&B0),Y      ;; Get drive
-       ORA &C317        ;; OR with current drive
+       ORA ABSWS+&0317        ;; OR with current drive
        STA &A6          ;; Store drive in &A6
        AND #&1F         ;; Lose drive bits
        BEQ LBF1A
@@ -8958,21 +8958,21 @@ IF INCLUDE_FLOPPY
 .LBF2E LDA #&06         ;; Drive 1,5 -> &06=RES+DS1
 .LBF30 STA &0D5E        ;; Store drive control byte
        LDA #&01
-       TSB &C2E4
+       TSB ABSWS+&02E4
        JSR LBF5E        ;; Calculate sector/track
        LDA &0D5E        ;; Get drive control byte
        STA &FE24        ;; Set drive control register
        ROR A            ;; Rotate drive 1 bit into carry
        BCC LBF50        ;; Jump if drive 0
-       LDA &C2E5
+       LDA ABSWS+&02E5
        STA &A3
-       BIT &C2E4
+       BIT ABSWS+&02E4
        BPL LBF5D
        BMI LBF5A
 ;;
-.LBF50 LDA &C2E6
+.LBF50 LDA ABSWS+&02E6
        STA &A3
-       BIT &C2E4
+       BIT ABSWS+&02E4
        BVC LBF5D
 .LBF5A JSR LBD55
 .LBF5D RTS
@@ -9045,36 +9045,36 @@ IF INCLUDE_FLOPPY
 ;;
 ;; Drive 2,3,6,7
 ;; -------------
-.LBFB7 LDX &C2E7
+.LBFB7 LDX ABSWS+&02E7
        TXS              ;; Reset stack
-       LDA &C2E0
+       LDA ABSWS+&02E0
        AND #&20
        BEQ LBFE9        ;; b6=0, jump to release and return
        LDA &0D5E        ;; Get drive control byte
        ROR A            ;; Cy=0 drv1/5, Cy=1 drv0/4
        LDA &A3
        BCC LBFD6        ;; Jump if drive 1/5
-       STA &C2E5        ;; Store
-       ROL &C2E4
+       STA ABSWS+&02E5  ;; Store
+       ROL ABSWS+&02E4
        CLC
-       ROR &C2E4        ;; Clear b7
+       ROR ABSWS+&02E4  ;; Clear b7
        BCS LBFE1
 ;;
-.LBFD6 STA &C2E6
-       LDA &C2E4
+.LBFD6 STA ABSWS+&02E6
+       LDA ABSWS+&02E4
        AND #&BF
-       STA &C2E4        ;; Clear b6
+       STA ABSWS+&02E4  ;; Clear b6
 ;;
 .LBFE1 LDA &A0          ;; Get error
-       STA &C2E3        ;; Store in error block
+       STA ABSWS+&02E3  ;; Store in error block
        JSR LBC0E        ;; Release NMI
 .LBFE9 JSR L803A        ;; Release Tube, restore screen
        LDX &B0
-       LDA &C2E3        ;; Get error
+       LDA ABSWS+&02E3        ;; Get error
        BEQ LBFFA        ;; If zero, jump to return Ok
        ORA #&40         ;; Set bit 6 to flag FDC error
        LDY #&FF
-       STY &C2E4
+       STY ABSWS+&02E4
 .LBFFA LDY &B1
        AND #&7F         ;; Remove bit 7 and set EQ
        RTS              ;; Return with A=error, EQ=Ok

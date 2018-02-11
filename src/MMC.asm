@@ -230,11 +230,11 @@ write_block      =&58
     PHX
     LDA #0         ;; MSB of sector number
     PHA
-    LDA &C203,X
+    LDA ABSWS+&0203,X
     PHA
-    LDA &C202,X
+    LDA ABSWS+&0202,X
     PHA
-    LDA &C201,X    ;; LSB of sector number
+    LDA ABSWS+&0201,X ;; LSB of sector number
     PHA
     BRA setAddressFromStack
 }
@@ -266,8 +266,8 @@ write_block      =&58
      TSX
      LDA &103, X    ;; Bits 7-5 are the drive number
      PHA
-     ORA &C317      ;; Add in current drive
-     STA &C333      ;; Store for any error
+     ORA ABSWS+&0317 ;; Add in current drive
+     STA ABSWS+&0333 ;; Store for any error
 
      CLC            ;; Shift into bits 0-2
      ROL A
@@ -368,8 +368,8 @@ write_block      =&58
 
 .initializeDriveTable
 {
-;; Load 512b sector 0 (MBR) to &C000-&C1FF
-;; Normally MBR resides here, but we do this before MBR is loaded
+;; Load 512b sector 0 (MBR) to the begining of absolute workspace.
+;; Normally FSM resides here, but we do this before FSM is loaded
 ;; We can't use OSWORD &72 to do this, as we don't want alternative bytes skipped
      JSR MMC_BEGIN      ;; Initialize the card, if not already initialized
      CLC                ;; C=0 for Read

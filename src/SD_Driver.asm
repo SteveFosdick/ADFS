@@ -17,8 +17,8 @@
        BVC CommandStart ;; Accessing I/O memory
        PHP
        PHX
-       LDX #&27         ;; Point to address block
-       LDY #&C2
+       LDX #<(ABSWS+&0227) ;; Point to address block
+       LDY #>(ABSWS+&0227)
        LDA #0           ;; Set Tube action
        ROL A
        EOR #1
@@ -60,11 +60,11 @@
 
        INC &B3          ;; Increment the MSB of the dataptr
 
-       INC &C228        ;; Increment Tube address
+       INC ABSWS+&0228  ;; Increment Tube address
        BNE TubeAddr
-       INC &C229
+       INC ABSWS+&0229
        BNE TubeAddr
-       INC &C22A
+       INC ABSWS+&022A
 .TubeAddr
 
        DEC sectorcount%
