@@ -4162,8 +4162,12 @@ ENDIF
 ;; Low service call routines address-1 low bytes
 ;; ---------------------------------------------
 .L9AAC EQUB <(L9AD5-1)                   ;; Serv0 - L9AD5 - Null
+IF ABSWS < &8000
+       EQUB <(LOWABS-1)                  ;; Serv1 - L9AD5 - Low abs w/s
+ELSE
        EQUB <(L9AD5-1)                   ;; Serv1 - L9AD5 - Null
-       EQUB <(L9AFF-1)                   ;; Serv2 - L9AFF - Low w/s
+ENDIF
+       EQUB <(L9AFF-1)                   ;; Serv2 - L9AFF - Low priv w/s
        EQUB <(L9B54-1)                   ;; Serv3 - L9B54 - Boot FS
        EQUB <(L9D23-1)                   ;; Serv4 - L9D23 - Commands
        EQUB <(LAB89-1)                   ;; Serv5 - LAB89 - Interrupt
@@ -4175,7 +4179,11 @@ ENDIF
 ;; Low service call routines address-1 high bytes
 ;; ----------------------------------------------
 .L9AB6 EQUB >(L9AD5-1)
+IF ABSWS < &8000
+       EQUB >(LOWABS-1)
+ELSE
        EQUB >(L9AD5-1)
+ENDIF
        EQUB >(L9AFF-1)
        EQUB >(L9B54-1)
        EQUB >(L9D23-1)
@@ -4246,6 +4254,14 @@ ENDIF
        LDA L9AC0-&21,X   ;; onto stack
        BRA L9AE8        ;; Jump back to jump to service routine
 ;;
+;; Serv1 - Low absolute workspace claim
+;; ====================================
+IF ABSWS < &8000
+.LOWABS CPY #&1C         ;; ADFS needs up to &CE00-1
+        BCS labsok       ;; Exit if Y>&CE
+        LDY #&1C         ;; ADFS needs up to &CE00-1
+.labsok RTS
+ENDIF
 ;;
 ;; Serv2 - Low workspace claim
 ;; ===========================
@@ -4253,9 +4269,12 @@ ENDIF
 ;; a page of workspace from low memory. ADFS also does some initialisation
 ;; on this call.
 ;;
-.L9AFF LDA &0DF0,X      ;; Get workspace pointer
+.L9AFF
+IF ABSWS > &8000
+       LDA &0DF0,X      ;; Get workspace pointer
        CMP #&DC         ;; Is it set to <&DC00?
        BCC L9B0A        ;; Use existing value if it is
+ENDIF        
        TYA
        STA &0DF0,X      ;; Use low workspace
 .L9B0A PHY              ;; Save current pointer
