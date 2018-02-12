@@ -2865,6 +2865,12 @@ ENDIF
         ;;
 IF COMMON_COMMANDS
 .DELF  JSR PFNM
+       JSR DEL2
+       CMP #0
+       BEQ NDEL
+       RTS
+.NDEL  JMP L8BE2
+.REMF  JSR PFNM
        BRA DEL2
 ENDIF 
        JSR LA50D
@@ -4996,6 +5002,9 @@ IF PATCH_IDE OR PATCH_SD
        EQUS "MOUNT", >(MountCheck-1), <(MountCheck-1), &40
 ELSE
        EQUS "MOUNT", >(LA19E-1), <(LA19E-1), &40
+ENDIF
+IF COMMON_COMMANDS
+       EQUS "REMOVE", >(REMF-1), <(REMF-1), &20
 ENDIF
        EQUS "RENAME", >(LA541-1), <(LA541-1), &22
        EQUS "TITLE", >(LA292-1), <(LA292-1), &70
