@@ -2981,10 +2981,10 @@ ENDIF
        BNE L9232
        INC &B7
 .L9232 LDA &B6
-       CMP #&BB
+       CMP #<(ABSWS+&08BB)
        BNE L9228
        LDA &B7
-       CMP #&C8
+       CMP #>(ABSWS+&08BB)
        BNE L9228
        JSR L84E1
        JSR L8F91
