@@ -2259,7 +2259,7 @@ ENDIF
        INY
        LDA (&B8),Y
        STA &B5
-       JSR L8DC8
+ .PFNM JSR L8DC8
        JSR L8FE8
        BEQ L8CEC
        JSR L9456
@@ -2862,7 +2862,11 @@ ENDIF
        BEQ L90D8
        LDA #&00
        RTS
-;;
+        ;;
+IF COMMON_COMMANDS
+.DELF  JSR PFNM
+       BRA DEL2
+ENDIF 
        JSR LA50D
        LDA &B4
        STA ABSWS+&0240
@@ -2873,7 +2877,7 @@ ENDIF
        LDA #>(ABSWS+&0240)
        STA &B9
 .L9127 JSR L8CD4
-       BEQ L9131
+.DEL2  BEQ L9131
        LDA #&00
        JMP L89D8
 ;;
@@ -4966,12 +4970,24 @@ ENDIF
        EQUS "BACK", >(LA4D5-1), <(LA4D5-1), &00
        EQUS "BYE", >(LA103-1), <(LA103-1), &00
        EQUS "CDIR", >(L9577-1), <(L9577-1), &20
+IF COMMON_COMMANDS
+       EQUS "CLOSE", >(LB210-1), <(LB210-1), &00
+ENDIF 
        EQUS "COMPACT", >(LA2B6-1), <(LA2B6-1), &50
        EQUS "COPY", >(LA849-1), <(LA849-1), &13
+IF COMMON_COMMANDS
+       EQUS "DELETE", >(DELF-1), <(DELF-1), &20
+ENDIF
        EQUS "DESTROY", >(L99E9-1), <(L99E9-1), &10
        EQUS "DIR", >(L9546-1), <(L9546-1), &20
-       EQUS "DISMOUNT", >(LA151-1), <(LA151-1), &40
+        EQUS "DISMOUNT", >(LA151-1), <(LA151-1), &40
+IF COMMON_COMMANDS
+       EQUS "EX", >(L943A-1), <(L943A-1), &20
+ENDIF 
        EQUS "FREE", >(LA063-1), <(LA063-1), &00
+IF COMMON_COMMANDS
+       EQUS "INFO", >(L94EE-1), <(L94EE-1), &10
+ENDIF
        EQUS "LCAT", >(LA4BD-1), <(LA4BD-1), &00
        EQUS "LEX", >(LA4C9-1), <(LA4C9-1), &00
        EQUS "LIB", >(LA482-1), <(LA482-1), &30
