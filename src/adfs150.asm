@@ -700,8 +700,8 @@ ELIF PATCH_IDE
        LDA #&FF       ;; Junk - so a binary compare will pass
        JMP &81D4      ;; Junk - so a binary compare will pass
 ELSE
-.L821F LDX #&27
-       LDY #&C2
+.L821F LDX #<(ABSWS+&0227)
+       LDY #>(ABSWS+&0227)
 .L8223 JSR L8332
        BPL L822B
        JMP L81AD
@@ -2428,9 +2428,9 @@ ENDIF
        STA ABSWS+&0227
        LDA &B5
        STA ABSWS+&0228
-       LDA #&B1
+       LDA #<(ABSWS+&08B1)
        STA &B4
-       LDA #&C8
+       LDA #>(ABSWS+&08B1)
        STA &B5
        LDY #&1A
        LDX #&06
@@ -2498,9 +2498,9 @@ ENDIF
        PHA
        LDA &B7
        PHA
-.L8EC3 LDA #&05
+.L8EC3 LDA #<(ABSWS+&0405)
        STA &B6
-       LDA #&C4
+       LDA #>(ABSWS+&0405)
        STA &B7
 .L8ECB LDY #&00
        LDA (&B6),Y
@@ -5107,7 +5107,7 @@ ENDIF
        LDX &C6
        LDY #&02
 .LA0CB DEX
-       LDA &C100,X
+       LDA ABSWS+&0100,X
        JSR L9322
        DEY
        BPL LA0CB
@@ -6067,7 +6067,7 @@ ENDIF
        LDA #>(ABSWS+&027F)
        STA &B9
        LDA #<(ABSWS+&0274)
-       STA &C27F
+       STA ABSWS+&027F
        LDA #>(ABSWS+&0274)
        STA ABSWS+&0280
        JSR L8BBE
@@ -6593,9 +6593,9 @@ ENDIF
        STX ABSWS+&02A1
        LSR A
        LSR A
-       ADC #&C9
+       ADC #>(ABSWS+&0900)
        STA &BF
-       LDA #&00
+       LDA #<(ABSWS+&0900)
        STA &BE
 .LABE6 RTS
 ;;
@@ -7275,7 +7275,7 @@ ENDIF
        LDA #&C0
        JSR LABE7
        LDX &CF
-       LDY &C37A,X
+       LDY ABSWS+&037A,X
        PLA
        STA (&BE),Y
        PHA
@@ -8033,7 +8033,7 @@ ENDIF
        LDX &CF
        LDA &C8
        CMP #&01
-       LDA &C3CA,X
+       LDA ABSWS+&03CA,X
        ADC &C9
        STA ABSWS+&021D
        LDA ABSWS+&03C0,X
@@ -8110,8 +8110,8 @@ ENDIF
        LDA #&40
        TSB &CD
        LDA #&01
-       LDX #&B8
-       LDY #&C2
+       LDX #<(ABSWS+&02B8)
+       LDY #>(ABSWS+&02B8)
        JSR &0406
        PLP
 .LB898 STZ &BD
