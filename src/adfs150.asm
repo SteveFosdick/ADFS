@@ -3548,8 +3548,8 @@ ENDIF
        EQUB >(ABSWS+&0900)
        EQUB &FF
        EQUB &FF
-       EQUB &00
-       EQUB &CE
+       EQUB <(ABSWS+&0E00)
+       EQUB >(ABSWS+&0E00)
        EQUB &FF
        EQUB &FF
 ;;
